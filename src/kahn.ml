@@ -15,6 +15,7 @@ module type S = sig
   val run: 'a process -> 'a
 end
 
+
 module Lib (K : S) = struct
 
   let ( >>= ) x f = K.bind x f
@@ -45,7 +46,7 @@ module Lib (K : S) = struct
 
 end
 
-
+(*
 module Th: S = struct
   type 'a process = (unit -> 'a)
 
@@ -88,3 +89,4 @@ module Th: S = struct
   let run e = e ()
 end
 
+*)
