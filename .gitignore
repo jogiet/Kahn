@@ -8,6 +8,9 @@
 *.cmxs
 *.cmxa
 
+# temporary files
+*~
+
 # ocamlbuild working directory
 _build/
 
