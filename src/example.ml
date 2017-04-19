@@ -21,6 +21,3 @@ module Example (K : Kahn.S) = struct
 
 end
 
-module E = Example(Pipes.P)
-
-let () = E.K.run E.main

@@ -51,8 +51,3 @@ module Seq: S = struct
          
       
 end
-
-open Primes
-module SeqPrimes = KahnPrimes(Seq)
-let _ = Seq.run SeqPrimes.main
-

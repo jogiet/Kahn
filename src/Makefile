@@ -3,6 +3,12 @@ OCAMLBUILD=ocamlbuild -classic-display \
 		-libs unix
 TARGET=native
 
+pipes:
+	$(OCAMLBUILD) pipes_test.$(TARGET)
+
+sequential:
+	$(OCAMLBUILD) sequential_test.$(TARGET)
+
 example:
 	$(OCAMLBUILD) example.$(TARGET)
 
