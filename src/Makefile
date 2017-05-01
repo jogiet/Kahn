@@ -3,6 +3,12 @@ OCAMLBUILD=ocamlbuild -classic-display \
 		-libs unix
 TARGET=native
 
+network_try:
+	$(OCAMLBUILD) network_try.$(TARGET)
+	$(OCAMLBUILD) network_try_client.$(TARGET)
+	-killall -q network_try.$(TARGET)
+	./network_try.$(TARGET) & ./network_try_client.$(TARGET)
+
 pipes:
 	$(OCAMLBUILD) pipes_test.$(TARGET)
 
