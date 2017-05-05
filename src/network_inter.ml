@@ -1,21 +1,35 @@
-(*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*)
-(*                      Pipes Kahn Network                      *)
-(*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*)
-
 module M = Marshal
 module U = Unix
 module B = Bytes
 
-module P : Kahn.S = 
+module N : Kahn.S =
 struct 
 	type 'a process = unit -> 'a
-	type 'a channel = Unix.file_descr
+	type 'a channel = U.file_descr
 	type 'a in_port = 'a channel
 	type 'a out_port = 'a channel
 
+	let port = ref 12345
+
+	let get_port () = 
+	begin
+		incr port;
+		!port;
+	end
+
 	let new_channel () = 
-		U.pipe ()
-	
+		let addr = U.ADDR_INET (U.inet_addr_loopback, get_port ()) in
+		let domain = U.domain_of_sockaddr addr in
+		let sock_in = U.socket domain U.SOCK_STREAM 0 
+		and sock_out = U.socket domain U.SOCK_STREAM 0 
+		in begin
+			U.bind sock_out addr;
+			U.listen sock_out 1;
+			U.connect sock_in addr;
+			let (sock_out, _) = U.accept sock_out in
+				(sock_in,sock_out)
+		end
+
 	let put x outprt = 
 	let res () = 
 		let bycode = M.to_bytes x [] in
@@ -38,7 +52,6 @@ struct
 		end
 	in res
 
-		
 	let doco l =  
 	let res () = 
 		let rec aux = function
@@ -66,5 +79,52 @@ struct
 
 
 	let run e = e ()
+
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
