@@ -3,13 +3,17 @@ OCAMLBUILD=ocamlbuild -classic-display \
 		-libs unix
 TARGET=native
 
-all:pipes sequential networkinter
+all: primes
+
+example:pipes sequential networkinter
 
 #network_try:
 #	$(OCAMLBUILD) network_try.$(TARGET)
 #	$(OCAMLBUILD) network_try_client.$(TARGET)
 #	-killall -q network_try.$(TARGET)
 #	./network_try.$(TARGET) & ./network_try_client.$(TARGET)
+
+primes: primes_pipes primes_network_inter 
 
 pipes:
 	$(OCAMLBUILD) pipes_test.$(TARGET)
@@ -23,6 +27,12 @@ networkinter:
 example:
 	$(OCAMLBUILD) example.$(TARGET)
 
+primes_pipes:
+	$(OCAMLBUILD) primes_pipes.$(TARGET)
+	
+primes_network_inter:
+	$(OCAMLBUILD) primes_network_inter.$(TARGET)
+	
 
 clean:
 	$(OCAMLBUILD) -clean
