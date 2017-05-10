@@ -34,8 +34,20 @@ primes_network_inter:
 	$(OCAMLBUILD) primes_network_inter.$(TARGET)
 	
 
+
+try: try_client try_server
+
+try_client:
+	$(OCAMLBUILD) network_try_client.$(TARGET)
+	
+try_server:
+	$(OCAMLBUILD) network_try.$(TARGET)
+
+
 clean:
-	$(OCAMLBUILD) -clean
+#	$(OCAMLBUILD) -clean
+	rm -rf _build/
+	rm -f *.native
 
 realclean: clean
 	rm -f *~

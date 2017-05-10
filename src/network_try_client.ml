@@ -4,7 +4,7 @@ module M = Marshal
 
 let () = 
   let s = U.socket U.PF_INET U.SOCK_STREAM 0 in
-  let host_name = "127.0.0.1" in
+  let host_name = "Tabac" in
   let host = U.gethostbyname host_name in
   let ip_addr = host.U.h_addr_list.(0) in
   let port = 12345 in
