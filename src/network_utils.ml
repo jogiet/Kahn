@@ -46,4 +46,4 @@ let recv_obj sock =
   let header = recv_bytes M.header_size sock in
   let size = M.data_size header 0 in
   let data = recv_bytes size sock in
-  M.from_bytes (B.cat header data)
+  M.from_bytes (B.cat header data) 0
