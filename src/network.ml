@@ -4,7 +4,7 @@ module B = Bytes
 module A = Arg
 open Network_utils
 
-(* TODO Dans le cas du client, initialiser 'sock' pour communiquer
+(* Dans le cas du client, initialiser 'sock' pour communiquer
    avec le serveur *)
 let sock = ref U.stdout
 
@@ -44,7 +44,8 @@ struct
   let buffers = Hashtbl.create 5
 
   let handle_message m =
-    (* Effectuer les opérations nécessaires lors de la réception du message *)
+    (* Effectuer les opérations nécessaires lors de la réception du
+       message *)
     match m with
     | Exec p -> Queue.add p micro_threads
     | Message(q,v) ->
@@ -59,7 +60,7 @@ struct
   let recv_any_message () =
     let m = recv_obj !sock in
     handle_message m
-       
+      
   let recv_all_messages () =
     while ( U.select [] [!sock] [] 0. ) <> ( [], [], [] ) do
       recv_any_message ()
@@ -76,7 +77,7 @@ struct
     match !q with
     | None -> assert false
     | Some q' -> q'
-      
+       
   let ask_for_channel () =
     send_obj AskChan !sock;
     recv_retchan_message ()
@@ -113,12 +114,12 @@ struct
          Queue.add p' micro_threads
     else
       wait_a_while ()
-         
+        
   let run_worker () =
     while (* TODO handle end of connection ? *) true do
       run_background ()
     done
-           
+      
   (*---------- Fonctions de l'interface ----------*)
       
   let new_channel () =
@@ -161,9 +162,71 @@ struct
     | Result r -> r
     | Continue p' ->
        run_background ();
-       run p'
+      run p'
+        
+
+
+
+
+(*---------- Fonctionnalités serveur ----------*)
+        
+  (* Le serveur accepte un nombre arbitraire de clients.  Dans une
+     boucle infinie, il reçoit les messages, et y répond de façon
+     appropriée ; il vérifie notamment s'il peut répondre aux 'get' en
+     attente *)
+
+  let srv_buffers = Hashtbl.create 5
+  let srv_next_buffer = ref 0
+  let srv_clients = Queue.create ()
+
+  (* For each channel, remember who is waiting for the answer *)
+  let srv_waiting = Hashtbl.create 5
+
+  let srv_forward_message client q =
+    (* Try to forward the message from channel q to client. Return
+       false in case of failure (empty queue). *)
+    let queue = Hashtbl.find srv_buffers q in
+    if Queue.is_empty queue then
+      false
+    else
+      let w = Queue.take queue in
+      let v = Obj.obj w in
+      send_obj (Message (q,v)) client;
+      true      
+
+  let srv_update_channel q =
+    if Hashtbl.mem srv_waiting q then
+      let client = Hashtbl.find srv_waiting q in
+      if srv_forward_message client q then
+        Hashtbl.remove srv_waiting q
+        
+  let srv_handle_message client = function
+    | Message (v,q) ->
+       let queue = Hashtbl.find srv_buffers q in
+       let w = Obj.repr v in
+       Queue.add w queue;
+       srv_update_channel q
+         
+    | Doco tasks -> (* TODO Improve task distribution *)
+      let send_one_task task =
+        let client = Queue.take srv_clients in
+        send_obj (Exec task) client
+      in
+      List.iter send_one_task tasks
        
-       
+    | AskChan ->
+       (* Crée un nouveau channel et le stocke dans srv_buffers *)
+       let q = !srv_next_buffer in
+       srv_next_buffer := !srv_next_buffer + 1;
+       Hashtbl.add srv_buffers q (Queue.create ())
+         
+    | AskMess q ->
+       Hashtbl.add srv_waiting q client;
+       srv_update_channel q
+        
+    | Exec _ | RetChan _ -> failwith "Server received Exec or RetChan"
+
+        
 end
 
 
@@ -176,9 +239,3 @@ let client_main ?task sock' =
      
      
 
-
-
-(*---------- Fonctionnalités serveur ----------*)
-     
-(* Le serveur accepte un nombre arbitraire de clients.
-Dans une boucle infinie, il reçoit les messages, et y répond de façon appropriée. *)
