@@ -11,6 +11,7 @@
 # temporary files
 *~
 *.swp
+*#
 
 # ocamlbuild working directory
 _build/

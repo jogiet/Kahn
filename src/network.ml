@@ -73,11 +73,14 @@ struct
     | Exec _ | Message _ | Doco _ | AskChan | AskMess _ ->
        failwith "Client received unexpected message while waiting for chan"
 
-  let send_to_server v q =
+  let send_to_channel v q =
     send_obj ( Message (q,v) ) !sock
 
   let send_ask_msg q =
     send_obj ( AskMess q ) !sock
+
+  let send_doco_msg tasks =
+    send_obj ( Doco tasks ) !sock
 
   let received_message q =
     Hashtbl.mem buffers q &&
@@ -111,7 +114,7 @@ struct
     q, q
 
   let put v q () =
-    send_to_server v q;
+    send_to_channel v q;
     Result ()
 
   let get q () =
@@ -130,7 +133,7 @@ struct
 
       
   let doco l () =
-    
+    send_doco_msg l;
     Result ()
 
   let return v () =
@@ -159,4 +162,9 @@ let client_main ?task sock' =
   | Some t -> N.run t
 
      
+     
+
+
+
+(*---------- Fonctionnalités serveur ----------*)
      
