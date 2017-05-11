@@ -43,6 +43,7 @@ struct
   (*---------- Fonctions utilitaires ----------*)
 
   let micro_threads = Queue.create ()
+  let next_mthread_id = ref 0
 
   let buffers = Hashtbl.create 5
 
@@ -61,15 +62,21 @@ struct
     (* Effectuer les opérations nécessaires lors de la réception du
        message *)
     match m with
-    | Exec p -> Queue.add p micro_threads
+    | Exec p ->
+       let id = !next_mthread_id in
+       next_mthread_id := !next_mthread_id +1;
+       Queue.add (id,p) micro_threads
+       
     | Message(q,v) ->
        if not (Hashtbl.mem buffers q) then
          Hashtbl.add buffers q (Queue.create ());
       let w = Obj.repr v in
       Queue.add w (Hashtbl.find buffers q)
+        
     | Doco _ | AskChan | AskMess _ ->
-       failwith "Client received Doco, AskChan or AskMess"
-    | RetChan _ -> failwith "Client received RetChan unexpectedly"
+       failwith "Client received Doco, AskChan or AskMess"  
+    | RetChan _ ->
+       failwith "Client received RetChan unexpectedly"
 
   let recv_any_message () =
     let m = recv_obj !sock in
@@ -124,11 +131,11 @@ struct
     print "Running bg tasks\n";
     recv_all_messages ();
     if not (Queue.is_empty micro_threads) then
-      let p = Queue.take micro_threads in
+      let id,p = Queue.take micro_threads in
       match p () with
       | Result () -> ()
       | Continue p' ->
-         Queue.add p' micro_threads
+         Queue.add (id,p') micro_threads
     else
       wait_a_while ()
         
@@ -181,6 +188,7 @@ struct
     | Continue y -> Continue (bind y f)
        
   let rec run p =
+    print "Running main task\n";
     match p () with
     | Result r -> r
     | Continue p' ->
@@ -257,6 +265,8 @@ struct
   let server_main addr =
     let domain = U.domain_of_sockaddr addr in
     let sock = U.socket domain U.SOCK_STREAM 0 in
+    Unix.setsockopt sock Unix.SO_REUSEADDR true;
+    print "Binding socket, with SO_REUSEADDR\n";
     let _ = U.bind sock addr in
     let _ = U.listen sock 20 in
     while true do
