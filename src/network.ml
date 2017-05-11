@@ -42,9 +42,8 @@ struct
   let micro_threads = Queue.create ()
 
   let buffers = Hashtbl.create 5
-    
-  let recv_message () =
-    let m = recv_obj !sock in
+
+  let handle_message m =
     (* Effectuer les opérations nécessaires lors de la réception du message *)
     match m with
     | Exec p -> Queue.add p micro_threads
@@ -56,22 +55,31 @@ struct
     | Doco _ | AskChan | AskMess _ ->
        failwith "Client received Doco, AskChan or AskMess"
     | RetChan _ -> failwith "Client received RetChan unexpectedly"
-         
+
+  let recv_any_message () =
+    let m = recv_obj !sock in
+    handle_message m
        
   let recv_all_messages () =
     while ( U.select [] [!sock] [] 0. ) <> ( [], [], [] ) do
-      recv_message ()
+      recv_any_message ()
     done
-      
+
+  let recv_retchan_message () =
+    let q = ref None in
+    while !q = None do
+      let m = recv_obj !sock in
+      match m with
+      | RetChan q1 -> q := Some q1
+      | _ -> handle_message m
+    done;
+    match !q with
+    | None -> assert false
+    | Some q' -> q'
       
   let ask_for_channel () =
-    recv_all_messages ();
     send_obj AskChan !sock;
-    let m = recv_obj !sock in
-    match m with
-    | RetChan q -> q
-    | Exec _ | Message _ | Doco _ | AskChan | AskMess _ ->
-       failwith "Client received unexpected message while waiting for chan"
+    recv_retchan_message ()
 
   let send_to_channel v q =
     send_obj ( Message (q,v) ) !sock
@@ -92,6 +100,8 @@ struct
     let w = Queue.take queue in
     Obj.obj w
 
+  let wait_a_while () =
+    ignore (U.select [] [] [] 0.001)
       
   let run_background () =
     recv_all_messages ();
@@ -101,6 +111,8 @@ struct
       | Result () -> ()
       | Continue p' ->
          Queue.add p' micro_threads
+    else
+      wait_a_while ()
          
   let run_worker () =
     while (* TODO handle end of connection ? *) true do
@@ -168,3 +180,5 @@ let client_main ?task sock' =
 
 (*---------- Fonctionnalités serveur ----------*)
      
+(* Le serveur accepte un nombre arbitraire de clients.
+Dans une boucle infinie, il reçoit les messages, et y répond de façon appropriée. *)
