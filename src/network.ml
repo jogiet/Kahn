@@ -11,7 +11,7 @@ let sock = ref U.stdout
 module type Extended_kahn =
 sig
   include Kahn.S
-  val client_main : ?task:'a process -> U.file_descr -> 'a
+  val client_main : ?task:(unit -> 'a process) -> U.file_descr -> 'a
   val server_main : U.sockaddr -> unit
 end
   
@@ -253,7 +253,7 @@ struct
     sock := sock';
     match task with
     | None -> run_worker (); assert false
-    | Some t -> run t
+    | Some t -> run (t ())
         
 end
 

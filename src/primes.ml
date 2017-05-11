@@ -39,7 +39,7 @@ module KahnPrimes (K : S) = struct
        )
      )
 
-  let main =
+  let main () =
     let qi1, qo1 = K.new_channel () in
     let qi2, qo2 = K.new_channel () in
     K.doco [ integers qo1 ; sift qi1 qo2 ; output qi2 ]
