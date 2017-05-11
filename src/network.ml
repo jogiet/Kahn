@@ -8,8 +8,13 @@ open Network_utils
    avec le serveur *)
 let sock = ref U.stdout
 
+module type Extended_kahn =
+sig
+  include Kahn.S
+  val run_worker : unit -> unit
+end
   
-module N : Kahn.S =
+module N : Extended_kahn =
 struct
 
   (*---------- Définition des types ----------*)
@@ -38,12 +43,9 @@ struct
 
   let buffers = Hashtbl.create 5
     
-    
-    
-    
   let recv_message () =
     let m = recv_obj !sock in
-    (* TODO Effectuer les opérations nécessaires lors de la réception du message *)
+    (* Effectuer les opérations nécessaires lors de la réception du message *)
     match m with
     | Exec p -> Queue.add p micro_threads
     | Message(q,v) ->
@@ -97,7 +99,11 @@ struct
       | Continue p' ->
          Queue.add p' micro_threads
          
-        
+  let run_worker () =
+    while (* TODO handle end of connection ? *) true do
+      run_background ()
+    done
+           
   (*---------- Fonctions de l'interface ----------*)
       
   let new_channel () =
@@ -110,7 +116,7 @@ struct
 
   let get q () =
     (* Lors de get, envoyer la demande au serveur, puis redonner la
-       main au client, en executant plus tard en boucle douce (qui à
+       main au client, en exécutant plus tard en boucle "soft" (qui à
        chaque tour laisse la main) une attente du message *)
     send_ask_msg q;
     let rec continuation () =
@@ -145,3 +151,12 @@ struct
        
 end
 
+
+let client_main ?task sock' =
+  sock := sock';
+  match task with
+  | None ->  N.run_worker ()
+  | Some t -> N.run t
+
+     
+     
