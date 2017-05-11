@@ -132,6 +132,7 @@ struct
     recv_all_messages ();
     if not (Queue.is_empty micro_threads) then
       let id,p = Queue.take micro_threads in
+      print ("Running micro-process #"^string_of_int id^"\n");
       match p () with
       | Result () -> ()
       | Continue p' ->
