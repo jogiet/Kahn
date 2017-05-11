@@ -11,7 +11,8 @@ let sock = ref U.stdout
 module type Extended_kahn =
 sig
   include Kahn.S
-  val run_worker : unit -> unit
+  val client_main : ?task:'a process -> U.file_descr -> 'a
+  val server_main : U.sockaddr -> unit
 end
   
 module N : Extended_kahn =
@@ -168,7 +169,7 @@ struct
 
 
 
-(*---------- Fonctionnalités serveur ----------*)
+  (*---------- Fonctionnalités serveur ----------*)
         
   (* Le serveur accepte un nombre arbitraire de clients.  Dans une
      boucle infinie, il reçoit les messages, et y répond de façon
@@ -178,6 +179,7 @@ struct
   let srv_buffers = Hashtbl.create 5
   let srv_next_buffer = ref 0
   let srv_clients = Queue.create ()
+  let srv_client_socks = ref []
 
   (* For each channel, remember who is waiting for the answer *)
   let srv_waiting = Hashtbl.create 5
@@ -192,14 +194,14 @@ struct
       let w = Queue.take queue in
       let v = Obj.obj w in
       send_obj (Message (q,v)) client;
-      true      
+      true
 
   let srv_update_channel q =
     if Hashtbl.mem srv_waiting q then
       let client = Hashtbl.find srv_waiting q in
       if srv_forward_message client q then
         Hashtbl.remove srv_waiting q
-        
+          
   let srv_handle_message client = function
     | Message (v,q) ->
        let queue = Hashtbl.find srv_buffers q in
@@ -208,12 +210,13 @@ struct
        srv_update_channel q
          
     | Doco tasks -> (* TODO Improve task distribution *)
-      let send_one_task task =
-        let client = Queue.take srv_clients in
-        send_obj (Exec task) client
-      in
-      List.iter send_one_task tasks
-       
+       let send_one_task task =
+         let client = Queue.take srv_clients in
+         send_obj (Exec task) client;
+         Queue.add client srv_clients
+       in
+       List.iter send_one_task tasks
+         
     | AskChan ->
        (* Crée un nouveau channel et le stocke dans srv_buffers *)
        let q = !srv_next_buffer in
@@ -222,19 +225,40 @@ struct
          
     | AskMess q ->
        Hashtbl.add srv_waiting q client;
-       srv_update_channel q
+      srv_update_channel q
         
     | Exec _ | RetChan _ -> failwith "Server received Exec or RetChan"
 
+
+  let server_main addr =
+    let domain = U.domain_of_sockaddr addr in
+    let sock = U.socket domain U.SOCK_STREAM 0 in
+    let _ = U.bind sock addr in
+    let _ = U.listen sock 20 in
+    while true do
+      if (U.select [sock] [] [] 0.) <> ([], [], []) then begin
+        let client_sock, client_addr = U.accept sock in
+        Queue.add client_sock srv_clients;
+        srv_client_socks := client_sock :: !srv_client_socks;
+      end;
+      let received, _, _ = U.select !srv_client_socks [] [] 0.01 in
+      let receive_message client =
+        let msg = recv_obj client in
+        srv_handle_message client msg
+      in
+      List.iter receive_message received;
+    done
+        
+  let client_main ?task sock' =
+    sock := sock';
+    match task with
+    | None -> run_worker (); assert false
+    | Some t -> run t
         
 end
 
 
-let client_main ?task sock' =
-  sock := sock';
-  match task with
-  | None ->  N.run_worker ()
-  | Some t -> N.run t
+
 
      
      
