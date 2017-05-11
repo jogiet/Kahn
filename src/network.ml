@@ -4,6 +4,8 @@ module B = Bytes
 module A = Arg
 open Network_utils
 
+let print s = print_string s; flush_all ()
+
 (* Dans le cas du client, initialiser 'sock' pour communiquer
    avec le serveur *)
 let sock = ref U.stdout
@@ -44,7 +46,18 @@ struct
 
   let buffers = Hashtbl.create 5
 
+
+  let string_of_message = function
+    | Exec _ -> "Exec"
+    | Message _ -> "Message"
+    | Doco _ -> "Doco"
+    | AskChan -> "AskChan"
+    | AskMess _ -> "AskMess"
+    | RetChan _ -> "RetChan"
+    
+    
   let handle_message m =
+    print ("Handling message " ^ string_of_message m ^ "\n");
     (* Effectuer les opérations nécessaires lors de la réception du
        message *)
     match m with
@@ -80,7 +93,9 @@ struct
     | Some q' -> q'
        
   let ask_for_channel () =
+    print "Asking for channel\n";
     send_obj AskChan !sock;
+    print "Waiting for answer\n";
     recv_retchan_message ()
 
   let send_to_channel v q =
@@ -106,6 +121,7 @@ struct
     ignore (U.select [] [] [] 0.001)
       
   let run_background () =
+    print "Running bg tasks\n";
     recv_all_messages ();
     if not (Queue.is_empty micro_threads) then
       let p = Queue.take micro_threads in
@@ -128,6 +144,7 @@ struct
     q, q
 
   let put v q () =
+    print ("Put to channel "^string_of_int q);
     send_to_channel v q;
     Result ()
 
@@ -135,8 +152,10 @@ struct
     (* Lors de get, envoyer la demande au serveur, puis redonner la
        main au client, en exécutant plus tard en boucle "soft" (qui à
        chaque tour laisse la main) une attente du message *)
+    print ("Get from channel "^string_of_int q^"\n");
     send_ask_msg q;
     let rec continuation () =
+      print ("Waiting to get from channel "^string_of_int q^"\n");
       if received_message q then
         let v = get_message q in
         Result v
@@ -147,8 +166,11 @@ struct
 
       
   let doco l () =
-    send_doco_msg l;
-    Result ()
+    match l with
+    | [] -> Result ()
+    | t1 :: rest ->
+       send_doco_msg rest;
+      Continue t1
 
   let return v () =
     Result v
@@ -218,11 +240,13 @@ struct
        List.iter send_one_task tasks
          
     | AskChan ->
-       (* Crée un nouveau channel et le stocke dans srv_buffers *)
+       (* Crée un nouveau channel et le stocke dans srv_buffers, puis
+          répond à la question *)
        let q = !srv_next_buffer in
        srv_next_buffer := !srv_next_buffer + 1;
-       Hashtbl.add srv_buffers q (Queue.create ())
-         
+       Hashtbl.add srv_buffers q (Queue.create ());
+       send_obj (RetChan q) client
+       
     | AskMess q ->
        Hashtbl.add srv_waiting q client;
       srv_update_channel q
@@ -237,6 +261,7 @@ struct
     let _ = U.listen sock 20 in
     while true do
       if (U.select [sock] [] [] 0.) <> ([], [], []) then begin
+        print "\nClient connected!\n";
         let client_sock, client_addr = U.accept sock in
         Queue.add client_sock srv_clients;
         srv_client_socks := client_sock :: !srv_client_socks;
@@ -244,6 +269,7 @@ struct
       let received, _, _ = U.select !srv_client_socks [] [] 0.01 in
       let receive_message client =
         let msg = recv_obj client in
+        print ("Handling message "^ string_of_message msg ^"\n");
         srv_handle_message client msg
       in
       List.iter receive_message received;
@@ -252,8 +278,15 @@ struct
   let client_main ?task sock' =
     sock := sock';
     match task with
-    | None -> run_worker (); assert false
-    | Some t -> run (t ())
+    | None ->
+       print "Launching worker\n";
+      run_worker (); assert false
+    | Some t ->
+       print "Resolving main function...\n";
+      let t1 = t () in
+      print "Launching main client\n";
+      flush_all ();
+      run (t1)
         
 end
 
