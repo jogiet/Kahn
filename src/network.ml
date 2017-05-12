@@ -4,8 +4,15 @@ module B = Bytes
 module A = Arg
 open Network_utils
 
-let print s = print_string s; flush_all ()
+let print s = print_string s; flush_all (); ()
 
+let print_hashtbl tbl =
+  print "Hashtbl : [";
+  let f k v = print (string_of_int k ^ ";") in
+  Hashtbl.iter f tbl;
+  print "]\n"
+  
+  
 (* Dans le cas du client, initialiser 'sock' pour communiquer
    avec le serveur *)
 let sock = ref U.stdout
@@ -26,17 +33,17 @@ struct
     | Continue of 'a process
   and 'a process = unit -> 'a result
     
-  and 'a port = int
-  and 'a in_port = 'a port
-  and 'a out_port = 'a port
+  and port = int
+  and 'a in_port = port
+  and 'a out_port = port
 
   and 'a message = 
     | Exec of unit process
     | Doco of unit process list
     | AskChan
-    | RetChan of 'a port
-    | Message of 'a port * 'a
-    | AskMess of 'a port
+    | RetChan of port
+    | Message of port * 'a
+    | AskMess of port
 
 
 
@@ -46,6 +53,7 @@ struct
   let next_mthread_id = ref 0
 
   let buffers = Hashtbl.create 5
+  let _ = print_hashtbl buffers
 
 
   let string_of_message = function
@@ -66,12 +74,19 @@ struct
        let id = !next_mthread_id in
        next_mthread_id := !next_mthread_id +1;
        Queue.add (id,p) micro_threads
-       
+         
     | Message(q,v) ->
-       if not (Hashtbl.mem buffers q) then
-         Hashtbl.add buffers q (Queue.create ());
+       print ("Receiving msg on channel @"^string_of_int q^"\n");
+      if not (Hashtbl.mem buffers q) then begin
+        print ("Creating buffer for channel @"^string_of_int q^"\n");
+        let queue = Queue.create () in
+        Hashtbl.add buffers q queue;
+      end;
+      assert (Hashtbl.mem buffers q);
       let w = Obj.repr v in
-      Queue.add w (Hashtbl.find buffers q)
+      let queue = Hashtbl.find buffers q in
+      Queue.add w queue;
+      print_hashtbl buffers
         
     | Doco _ | AskChan | AskMess _ ->
        failwith "Client received Doco, AskChan or AskMess"  
@@ -113,11 +128,19 @@ struct
 
   let send_doco_msg tasks =
     send_obj ( Doco tasks ) !sock
-
+      
+      
   let received_message q =
-    Hashtbl.mem buffers q &&
+    print ("received_message @"^string_of_int q^" : ");
+    print_hashtbl buffers;
+    if Hashtbl.mem buffers q then begin
+      print "Checking buffer\n";
       let queue = Hashtbl.find buffers q in
       not (Queue.is_empty queue)
+    end else begin
+      print "No buffer\n";
+      false
+    end
 
   let get_message q =
     let queue = Hashtbl.find buffers q in
@@ -133,6 +156,7 @@ struct
     if not (Queue.is_empty micro_threads) then
       let id,p = Queue.take micro_threads in
       print ("Running micro-process #"^string_of_int id^"\n");
+      print_hashtbl buffers;
       match p () with
       | Result () -> ()
       | Continue p' ->
@@ -152,23 +176,37 @@ struct
     q, q
 
   let put v q () =
-    print ("Put to channel "^string_of_int q);
+    print ("Put to channel @"^string_of_int q^"\n");
+    print_hashtbl buffers;
     send_to_channel v q;
     Result ()
 
+  let failure_counter = ref 0
+  let failure () =
+    failure_counter := !failure_counter + 1;
+    if !failure_counter > 3 then begin
+      print "***Too many failures. Exiting.***\n";
+      exit 1
+    end
+      
   let get q () =
     (* Lors de get, envoyer la demande au serveur, puis redonner la
        main au client, en exécutant plus tard en boucle "soft" (qui à
        chaque tour laisse la main) une attente du message *)
-    print ("Get from channel "^string_of_int q^"\n");
+    print ("Get from channel @"^string_of_int q^"\n");
+    print_hashtbl buffers;
     send_ask_msg q;
     let rec continuation () =
-      print ("Waiting to get from channel "^string_of_int q^"\n");
-      if received_message q then
+      print ("Waiting to get from channel @"^string_of_int q^"\n");
+      print_hashtbl buffers;
+      if received_message q then begin
+        print ("Received answer from channel @"^string_of_int q^"\n");
         let v = get_message q in
         Result v
-      else
+      end else begin
+        failure ();
         Continue continuation
+      end
     in
     Continue continuation
 
@@ -228,18 +266,25 @@ struct
       true
 
   let srv_update_channel q =
-    if Hashtbl.mem srv_waiting q then
+    print ("srv_update_channel @"^string_of_int q^" : ");
+    if Hashtbl.mem srv_waiting q then begin
       let client = Hashtbl.find srv_waiting q in
-      if srv_forward_message client q then
+      if srv_forward_message client q then begin
+        print ("Forwarding msg on channel @"^string_of_int q^"\n");
         Hashtbl.remove srv_waiting q
+      end else
+        print ("Cannot forward to channel @"^string_of_int q^"\n")
+    end else
+      print ("None waiting.\n")
           
   let srv_handle_message client = function
-    | Message (v,q) ->
-       let queue = Hashtbl.find srv_buffers q in
-       let w = Obj.repr v in
-       Queue.add w queue;
-       srv_update_channel q
-         
+    | Message (q,v) ->
+       print ("Receiving msg on channel @"^string_of_int q^"\n");
+      let queue = Hashtbl.find srv_buffers q in
+      let w = Obj.repr v in
+      Queue.add w queue;
+      srv_update_channel q
+        
     | Doco tasks -> (* TODO Improve task distribution *)
        let send_one_task task =
          let client = Queue.take srv_clients in
@@ -255,7 +300,7 @@ struct
        srv_next_buffer := !srv_next_buffer + 1;
        Hashtbl.add srv_buffers q (Queue.create ());
        send_obj (RetChan q) client
-       
+         
     | AskMess q ->
        Hashtbl.add srv_waiting q client;
       srv_update_channel q
