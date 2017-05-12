@@ -13,6 +13,10 @@ example:pipes sequential networkinter
 #	-killall -q network_try.$(TARGET)
 #	./network_try.$(TARGET) & ./network_try_client.$(TARGET)
 
+network_test:
+	$(OCAMLBUILD) network_test.$(TARGET)
+	./network_test.$(TARGET) -s
+
 primes: primes_pipes primes_network_inter 
 
 pipes:
@@ -21,25 +25,25 @@ pipes:
 sequential:
 	$(OCAMLBUILD) sequential_test.$(TARGET)
 
-networkinter:
-	$(OCAMLBUILD) network_inter_test.$(TARGET)
+#networkinter:
+#	$(OCAMLBUILD) network_inter_test.$(TARGET)
 
 example:
 	$(OCAMLBUILD) example.$(TARGET)
 
 primes_pipes:
 	$(OCAMLBUILD) primes_pipes.$(TARGET)
-	
+
 primes_network_inter:
 	$(OCAMLBUILD) primes_network_inter.$(TARGET)
-	
+
 
 
 try: try_client try_server
 
 try_client:
 	$(OCAMLBUILD) network_try_client.$(TARGET)
-	
+
 try_server:
 	$(OCAMLBUILD) network_try.$(TARGET)
 

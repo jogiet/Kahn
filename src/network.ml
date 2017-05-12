@@ -83,7 +83,7 @@ struct
     handle_message m
       
   let recv_all_messages () =
-    while ( U.select [] [!sock] [] 0. ) <> ( [], [], [] ) do
+    while ( U.select [!sock] [] [] 0. ) <> ( [], [], [] ) do
       recv_any_message ()
     done
 
