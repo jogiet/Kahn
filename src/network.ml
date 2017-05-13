@@ -28,15 +28,24 @@ module N : Extended_kahn =
 struct
 
   (*---------- Définition des types ----------*)
+
+  
+  type port = int
+  and 'a in_port = port
+  and 'a out_port = port
+    
   type 'a result =
     | Result of 'a
     | Continue of 'a process
-  and 'a process = unit -> 'a result
-    
-  and port = int
-  and 'a in_port = port
-  and 'a out_port = port
+  and 'a process_to_run = unit -> 'a result
+  and 'a process =
+    | Put of Obj.t * port
+    | Get of port
+    (*    | Bind of Obj.t process * (Obj.t -> 'a process) *)
+    | Run of 'a process_to_run
+        
 
+        
   and 'a message = 
     | Exec of unit process
     | Doco of unit process list
@@ -55,6 +64,14 @@ struct
   let buffers = Hashtbl.create 5
   let _ = print_hashtbl buffers
 
+  let failure_counter = ref 0
+  let failure () =
+    failure_counter := !failure_counter + 1;
+    if !failure_counter > 3 then begin
+      print "***Too many failures. Exiting.***\n";
+      exit 1
+    end
+
 
   let string_of_message = function
     | Exec _ -> "Exec"
@@ -63,7 +80,6 @@ struct
     | AskChan -> "AskChan"
     | AskMess _ -> "AskMess"
     | RetChan _ -> "RetChan"
-    
     
   let handle_message m =
     print ("Handling message " ^ string_of_message m ^ "\n");
@@ -149,6 +165,55 @@ struct
 
   let wait_a_while () =
     ignore (U.select [] [] [] 0.001)
+
+
+      
+  let run_put v q () =
+    print ("Put to channel @"^string_of_int q^"\n");
+    print_hashtbl buffers;
+    send_to_channel v q;
+    Result (Obj.magic ())
+
+      
+  let run_get q () =
+    (* Lors de get, envoyer la demande au serveur, puis redonner la
+       main au client, en exécutant plus tard en boucle "soft" (qui à
+       chaque tour laisse la main) une attente du message *)
+    print ("Get from channel @"^string_of_int q^"\n");
+    print_hashtbl buffers;
+    send_ask_msg q;
+    let rec continuation () =
+      print ("Waiting to get from channel @"^string_of_int q^"\n");
+      print_hashtbl buffers;
+      if received_message q then begin
+        print ("Received answer from channel @"^string_of_int q^"\n");
+        let v = get_message q in
+        Result v
+      end else begin
+        failure ();
+        Continue(Run(continuation))
+      end
+    in
+    Continue(Run(continuation))
+
+
+  let rec run_bind x f () =
+    print "run_bind : ";
+    let x' = run_step x in
+    match x' with
+    | Result v -> print "run_bind|Result\n"; Continue (f v)
+    | Continue y -> print "run_bind|Continue\n"; Continue (bind y f)
+
+  and bind x f =
+    Run(run_bind x f)
+
+      
+  and run_step = function
+    | Put(v,q) -> print "Put -> "; run_put v q ()
+    | Get(q) -> print "Get -> "; run_get q ()
+(*    | Bind(x,f) ->
+      run_bind x f () *)
+    | Run(f) -> print "Run -> "; f ()
       
   let run_background () =
     print "Running bg tasks\n";
@@ -157,7 +222,7 @@ struct
       let id,p = Queue.take micro_threads in
       print ("Running micro-process #"^string_of_int id^"\n");
       print_hashtbl buffers;
-      match p () with
+      match run_step p with
       | Result () -> ()
       | Continue p' ->
          Queue.add (id,p') micro_threads
@@ -175,60 +240,31 @@ struct
     let q = ask_for_channel () in
     q, q
 
-  let put v q () =
-    print ("Put to channel @"^string_of_int q^"\n");
-    print_hashtbl buffers;
-    send_to_channel v q;
-    Result ()
-
-  let failure_counter = ref 0
-  let failure () =
-    failure_counter := !failure_counter + 1;
-    if !failure_counter > 3 then begin
-      print "***Too many failures. Exiting.***\n";
-      exit 1
-    end
+  let put v q =
+    let w = Obj.repr v in
+    Put(w,q)
       
-  let get q () =
-    (* Lors de get, envoyer la demande au serveur, puis redonner la
-       main au client, en exécutant plus tard en boucle "soft" (qui à
-       chaque tour laisse la main) une attente du message *)
-    print ("Get from channel @"^string_of_int q^"\n");
-    print_hashtbl buffers;
-    send_ask_msg q;
-    let rec continuation () =
-      print ("Waiting to get from channel @"^string_of_int q^"\n");
-      print_hashtbl buffers;
-      if received_message q then begin
-        print ("Received answer from channel @"^string_of_int q^"\n");
-        let v = get_message q in
-        Result v
-      end else begin
-        failure ();
-        Continue continuation
-      end
-    in
-    Continue continuation
+  let get q =
+    Get(q)
 
       
-  let doco l () =
+      
+  let run_doco l () =
     match l with
     | [] -> Result ()
     | t1 :: rest ->
        send_doco_msg rest;
       Continue t1
 
-  let return v () =
-    Result v
+  let doco l =
+    Run(run_doco l)
 
-  let rec bind x f () =
-    match x () with
-    | Result v -> Continue (f v)
-    | Continue y -> Continue (bind y f)
+  let return v =
+    Run( fun () -> Result v )
        
   let rec run p =
     print "Running main task\n";
-    match p () with
+    match run_step p with
     | Result r -> r
     | Continue p' ->
        run_background ();
