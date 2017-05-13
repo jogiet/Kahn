@@ -4,7 +4,7 @@ module B = Bytes
 module A = Arg
 open Network_utils
 
-let verbose = ref false
+let verbose = ref true
 let print s = if !verbose then begin print_string s; flush_all (); end; ()
 
 let print_hashtbl tbl =
@@ -150,14 +150,14 @@ type 'a process = my_process
       
       
   let received_message q =
-    print ("received_message @"^string_of_int q^" : ");
-    print_hashtbl buffers;
+    (* print ("received_message @"^string_of_int q^" : ");*)
+    (* print_hashtbl buffers;*)
     if Hashtbl.mem buffers q then begin
-      print "Checking buffer\n";
+      (* print "Checking buffer\n";*)
       let queue = Hashtbl.find buffers q in
       not (Queue.is_empty queue)
     end else begin
-      print "No buffer\n";
+      (* print "No buffer\n"; *)
       false
     end
 
@@ -172,8 +172,8 @@ type 'a process = my_process
 
       
   let run_put v q () =
-    print ("Put to channel @"^string_of_int q^"\n");
-    print_hashtbl buffers;
+    (* print ("Put to channel @"^string_of_int q^"\n"); *)
+    (* print_hashtbl buffers; *)
     send_to_channel v q;
     Result (Obj.magic ())
 
@@ -186,8 +186,8 @@ type 'a process = my_process
     print_hashtbl buffers;
     send_ask_msg q;
     let rec continuation () =
-      print ("Waiting to get from channel @"^string_of_int q^"\n");
-      print_hashtbl buffers;
+      (* print ("Waiting to get from channel @"^string_of_int q^"\n"); *)
+      (* print_hashtbl buffers; *)
       if received_message q then begin
         print ("Received answer from channel @"^string_of_int q^"\n");
         let v = get_message q in
@@ -201,12 +201,12 @@ type 'a process = my_process
 
 
   let rec run_bind x (f : t -> my_process) () =
-    print "run_bind : ";
+    (* print "run_bind : "; *)
     let x' = run_step x in
     let f' v = f (Obj.magic v) in
     match x' with
-    | Result v -> print "run_bind|Result\n"; Continue (f v)
-    | Continue y -> print "run_bind|Continue\n"; Continue (bind y f')
+    | Result v -> (* print "run_bind|Result\n"; *) Continue (f v)
+    | Continue y -> (* print "run_bind|Continue\n"; *) Continue (bind y f')
 
   and bind x f =
     let f' v =
@@ -216,19 +216,19 @@ type 'a process = my_process
 
       
   and run_step = function
-    | Put(v,q) -> print "Put -> "; run_put v q ()
+    | Put(v,q) -> (* print "Put -> "; *) run_put v q ()
     | Get(q) -> print "Get -> "; run_get q ()
     | Bind(x,f) ->
        run_bind x f ()
-    | Run(f) -> print "Run -> "; f ()
+    | Run(f) -> (* print "Run -> "; *) f ()
       
   let run_background () =
-    print "Running bg tasks\n";
+    (* print "Running bg tasks\n"; *)
     recv_all_messages ();
     if not (Queue.is_empty micro_threads) then
       let id,p = Queue.take micro_threads in
-      print ("Running micro-process #"^string_of_int id^"\n");
-      print_hashtbl buffers;
+      (* print ("Running micro-process #"^string_of_int id^"\n"); *)
+      (* print_hashtbl buffers; *)
       match run_step p with
       | Result _ -> ()
       | Continue p' ->
@@ -270,7 +270,7 @@ type 'a process = my_process
     Run( fun () -> Result (Obj.magic v) )
        
   let rec run p =
-    print "Running main task\n";
+    (* print "Running main task\n"; *)
     match run_step p with
     | Result r -> Obj.magic r
     | Continue p' ->
@@ -368,7 +368,7 @@ type 'a process = my_process
       let received, _, _ = U.select !srv_client_socks [] [] 0.01 in
       let receive_message client =
         let msg = recv_obj client in
-        print ("Handling message "^ string_of_message msg ^"\n");
+        (* print ("Handling message "^ string_of_message msg ^"\n");*)
         srv_handle_message client msg
       in
       List.iter receive_message received;
