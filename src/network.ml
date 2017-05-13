@@ -4,7 +4,7 @@ module B = Bytes
 module A = Arg
 open Network_utils
 
-let verbose = ref true
+let verbose = ref false
 let print s = if !verbose then begin print_string s; flush_all (); end; ()
 
 let print_hashtbl tbl =
@@ -12,7 +12,10 @@ let print_hashtbl tbl =
   let f k v = print (string_of_int k ^ ";") in
   Hashtbl.iter f tbl;
   print "]\n"
-  
+
+
+let buffers : (int, Obj.t Queue.t) Hashtbl.t  = Hashtbl.create 5
+
   
 (* Dans le cas du client, initialiser 'sock' pour communiquer
    avec le serveur *)
@@ -46,8 +49,8 @@ struct
     | Bind of my_process * (t -> my_process)
     | Run of process_to_run
         
-type 'a process = my_process
-        
+  type 'a process = my_process
+    
   and 'a message = 
     | Exec of unit process
     | Doco of unit process list
@@ -63,7 +66,6 @@ type 'a process = my_process
   let micro_threads = Queue.create ()
   let next_mthread_id = ref 0
 
-  let buffers = Hashtbl.create 5
   let _ = print_hashtbl buffers
 
   let failure_counter = ref 0
@@ -254,14 +256,15 @@ type 'a process = my_process
   let get q =
     Get(q)
 
-      
+  let rec infinite_loop () =
+    Continue(Run(infinite_loop))
       
   let run_doco l () =
     match l with
     | [] -> Result (Obj.magic ())
-    | t1 :: rest ->
+    | rest ->
        send_doco_msg rest;
-      Continue t1
+      infinite_loop ()
 
   let doco l =
     Run(run_doco l)
@@ -309,7 +312,7 @@ type 'a process = my_process
       true
 
   let srv_update_channel q =
-    print ("srv_update_channel @"^string_of_int q^" : ");
+    (* print ("srv_update_channel @"^string_of_int q^" : ");*)
     if Hashtbl.mem srv_waiting q then begin
       let client = Hashtbl.find srv_waiting q in
       if srv_forward_message client q then begin
@@ -318,11 +321,11 @@ type 'a process = my_process
       end else
         print ("Cannot forward to channel @"^string_of_int q^"\n")
     end else
-      print ("None waiting.\n")
+  (* print ("None waiting.\n"); *) ()
           
   let srv_handle_message client = function
     | Message (q,v) ->
-       print ("Receiving msg on channel @"^string_of_int q^"\n");
+      (* print ("Receiving msg on channel @"^string_of_int q^"\n");*)
       let queue = Hashtbl.find srv_buffers q in
       let w = Obj.magic v in
       Queue.add w queue;
