@@ -29,22 +29,23 @@ struct
 
   (*---------- Définition des types ----------*)
 
+  type t = Obj.t
   
   type port = int
   and 'a in_port = port
   and 'a out_port = port
     
-  type 'a result =
-    | Result of 'a
-    | Continue of 'a process
-  and 'a process_to_run = unit -> 'a result
-  and 'a process =
-    | Put of Obj.t * port
+  type result =
+    | Result of t
+    | Continue of my_process
+  and process_to_run = unit -> result
+  and my_process =
+    | Put of t * port
     | Get of port
-    (*    | Bind of Obj.t process * (Obj.t -> 'a process) *)
-    | Run of 'a process_to_run
+    | Bind of my_process * (t -> my_process)
+    | Run of process_to_run
         
-
+type 'a process = my_process
         
   and 'a message = 
     | Exec of unit process
@@ -67,7 +68,7 @@ struct
   let failure_counter = ref 0
   let failure () =
     failure_counter := !failure_counter + 1;
-    if !failure_counter > 3 then begin
+    if (* !failure_counter > 3 *) false then begin
       print "***Too many failures. Exiting.***\n";
       exit 1
     end
@@ -99,7 +100,7 @@ struct
         Hashtbl.add buffers q queue;
       end;
       assert (Hashtbl.mem buffers q);
-      let w = Obj.repr v in
+      let w = Obj.magic v in
       let queue = Hashtbl.find buffers q in
       Queue.add w queue;
       print_hashtbl buffers
@@ -143,6 +144,7 @@ struct
     send_obj ( AskMess q ) !sock
 
   let send_doco_msg tasks =
+    print "Sending DOCO message.\n";
     send_obj ( Doco tasks ) !sock
       
       
@@ -161,7 +163,7 @@ struct
   let get_message q =
     let queue = Hashtbl.find buffers q in
     let w = Queue.take queue in
-    Obj.obj w
+    Obj.magic w
 
   let wait_a_while () =
     ignore (U.select [] [] [] 0.001)
@@ -197,22 +199,26 @@ struct
     Continue(Run(continuation))
 
 
-  let rec run_bind x f () =
+  let rec run_bind x (f : t -> my_process) () =
     print "run_bind : ";
     let x' = run_step x in
+    let f' v = f (Obj.magic v) in
     match x' with
     | Result v -> print "run_bind|Result\n"; Continue (f v)
-    | Continue y -> print "run_bind|Continue\n"; Continue (bind y f)
+    | Continue y -> print "run_bind|Continue\n"; Continue (bind y f')
 
   and bind x f =
-    Run(run_bind x f)
+    let f' v =
+      f (Obj.magic v)
+    in
+    Bind(x,f')
 
       
   and run_step = function
     | Put(v,q) -> print "Put -> "; run_put v q ()
     | Get(q) -> print "Get -> "; run_get q ()
-(*    | Bind(x,f) ->
-      run_bind x f () *)
+    | Bind(x,f) ->
+       run_bind x f ()
     | Run(f) -> print "Run -> "; f ()
       
   let run_background () =
@@ -223,7 +229,7 @@ struct
       print ("Running micro-process #"^string_of_int id^"\n");
       print_hashtbl buffers;
       match run_step p with
-      | Result () -> ()
+      | Result _ -> ()
       | Continue p' ->
          Queue.add (id,p') micro_threads
     else
@@ -241,7 +247,7 @@ struct
     q, q
 
   let put v q =
-    let w = Obj.repr v in
+    let w = Obj.magic v in
     Put(w,q)
       
   let get q =
@@ -251,7 +257,7 @@ struct
       
   let run_doco l () =
     match l with
-    | [] -> Result ()
+    | [] -> Result (Obj.magic ())
     | t1 :: rest ->
        send_doco_msg rest;
       Continue t1
@@ -260,12 +266,12 @@ struct
     Run(run_doco l)
 
   let return v =
-    Run( fun () -> Result v )
+    Run( fun () -> Result (Obj.magic v) )
        
   let rec run p =
     print "Running main task\n";
     match run_step p with
-    | Result r -> r
+    | Result r -> Obj.magic r
     | Continue p' ->
        run_background ();
       run p'
@@ -297,7 +303,7 @@ struct
       false
     else
       let w = Queue.take queue in
-      let v = Obj.obj w in
+      let v = Obj.magic w in
       send_obj (Message (q,v)) client;
       true
 
@@ -317,7 +323,7 @@ struct
     | Message (q,v) ->
        print ("Receiving msg on channel @"^string_of_int q^"\n");
       let queue = Hashtbl.find srv_buffers q in
-      let w = Obj.repr v in
+      let w = Obj.magic v in
       Queue.add w queue;
       srv_update_channel q
         
