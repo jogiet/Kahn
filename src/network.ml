@@ -4,7 +4,8 @@ module B = Bytes
 module A = Arg
 open Network_utils
 
-let print s = print_string s; flush_all (); ()
+let verbose = ref false
+let print s = if !verbose then begin print_string s; flush_all (); end; ()
 
 let print_hashtbl tbl =
   print "Hashtbl : [";
@@ -68,7 +69,7 @@ type 'a process = my_process
   let failure_counter = ref 0
   let failure () =
     failure_counter := !failure_counter + 1;
-    if (* !failure_counter > 3 *) false then begin
+    if (*!failure_counter > 10*) false then begin
       print "***Too many failures. Exiting.***\n";
       exit 1
     end

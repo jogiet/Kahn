@@ -15,7 +15,7 @@ module Example (K : Kahn.S) = struct
     in
     loop ()
 
-  let main : unit K.process =
+  let main () =
     (delay K.new_channel ()) >>=
     (fun (q_in, q_out) -> K.doco [ integers q_out ; output q_in ; ])
 

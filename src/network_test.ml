@@ -2,7 +2,7 @@ open Network
 open Primes
 open Printf
 
-module NetPrimes = KahnPrimes(N)
+module NetPrimes = Example.Example(N)
 
 let main =
   let is_server = ref false in
