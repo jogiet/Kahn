@@ -10,7 +10,7 @@ all: example primes mandelbrot rapport
 ##################################################################
 
 
-example:pipes sequential networkinter 
+example:pipes sequential networkinter
 
 pipes:
 	$(OCAMLBUILD) pipes_test.$(TARGET)
@@ -27,18 +27,13 @@ networkinter:
 #	-killall -q network_try.$(TARGET)
 #	./network_try.$(TARGET) & ./network_try_client.$(TARGET)
 
-network_test:
-	$(OCAMLBUILD) network_test.$(TARGET)
-	./network_test.$(TARGET) -s
+
 
 ##################################################################
 ##            Primes
 ##################################################################
 
-primes: primes_pipes primes_network_inter 
-
-example:
-	$(OCAMLBUILD) example.$(TARGET)
+primes: primes_pipes primes_network_inter network_primes
 
 primes_pipes:
 	$(OCAMLBUILD) pipes_primes.$(TARGET)
@@ -46,12 +41,15 @@ primes_pipes:
 primes_network_inter:
 	$(OCAMLBUILD) network_inter_primes.$(TARGET)
 
+network_primes:
+	$(OCAMLBUILD) network_test.$(TARGET)
+#	./network_test.$(TARGET) -s
 
 ##################################################################
 ##           Mandelbrot 
 ##################################################################
 
-mandelbrot:  seq_mand pipes_mand network_inter_mand
+mandelbrot:  seq_mand pipes_mand network_inter_mand network_mand
 
 seq_mand:
 	$(OCAMLBUILD) seq_mand.$(TARGET)
@@ -61,7 +59,9 @@ pipes_mand:
 
 network_inter_mand:
 	$(OCAMLBUILD) network_inter_mand.$(TARGET)
-	
+
+network_mand:
+	$(OCAMLBUILD) network_mand.$(TARGET)
 
 ##################################################################
 ##            Un essai de communication sur le réseau de l'ÉNS
@@ -90,6 +90,7 @@ clean:
 #	$(OCAMLBUILD) -clean
 	rm -rf _build/
 	rm -f *.native
+	rm -f *.aux *.log *.toc
 
 
 realclean: clean
