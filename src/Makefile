@@ -5,7 +5,7 @@ TARGET=native
 
 all: primes
 
-example:pipes sequential networkinter
+example:pipes sequential networkinter rapport
 
 #network_try:
 #	$(OCAMLBUILD) network_try.$(TARGET)
@@ -37,12 +37,9 @@ primes_pipes:
 primes_network_inter:
 	$(OCAMLBUILD) primes_network_inter.$(TARGET)
 
-mandelbrot: basic true pipes_mand
+mandelbrot:  seq_mand pipes_mand
 
-basic:
-	$(OCAMLBUILD) mandelbrot.$(TARGET)
-
-true:
+seq_mand:
 	$(OCAMLBUILD) seq_mand.$(TARGET)
 
 pipes_mand:
@@ -56,11 +53,14 @@ try_client:
 try_server:
 	$(OCAMLBUILD) network_try.$(TARGET)
 
+rapport:
+	pdflatex rapport.tex
 
 clean:
 #	$(OCAMLBUILD) -clean
 	rm -rf _build/
 	rm -f *.native
+
 
 realclean: clean
 	rm -f *~

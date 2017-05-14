@@ -1,4 +1,4 @@
-open True_mandelbrot
+open Mandelbrot
 open Sequential
 
 module SeqMand = Mand(Seq)

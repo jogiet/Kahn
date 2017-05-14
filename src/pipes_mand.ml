@@ -1,4 +1,4 @@
-open True_mandelbrot
+open Mandelbrot
 
 module PipMand = Mand(Pipes.P)
 
