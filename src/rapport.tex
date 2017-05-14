@@ -10,6 +10,8 @@
 %%%%     Pour les figures    %%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \usepackage{epsfig}
+\usepackage{tikz}
+    \usetikzlibrary{arrows,automata} % Pour les graphes
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%    Pour les Algorithmes     %%%%
@@ -96,7 +98,7 @@
 
 \title{\textsc{Réseaux de KAHN}}   % Mettre le titre içi!!
 \author{Josselin \textsc{Giet}, Alexis \textsc{Thibault}}  % Renseignerle nom de l'auteur
-\date{1Pour le 15/05/2017}    % Par défaut ,on ne met pas de date
+\date{Pour le 15/05/2017}    % Par défaut ,on ne met pas de date
 
 \begin{document}
 \maketitle
@@ -252,7 +254,49 @@ Remarque :
 	L'exemple Mandelbrot lancé sur l'implémentation avec les pipes ne
 	fonctionne que sur des petites valeurs. 
 
-
+\begin{figure}[H]
+	\begin{center}	
+	\begin{tikzpicture}[scale=1.75,->,>=stealth',shorten >=4pt,auto,inner sep=2pt,semithick,bend angle=20]
+    %\tikzstyle{every state}=[draw=none]
+    \node[state,circle] (input) at (0,0) {\tt{input}};
+    \node[state] (iter1) at (2,0) {\tt{iter}};
+    \node[state] (iter2) at (4,0){\tt{iter}};
+  %  \node[state,draw=none] (3) at (3,0){$ $};
+    
+    \node[state,draw=none] (l) at (5,0){$\ldots$};
+    
+    \node[state] (iterk) at (6,0) {\tt{iter}};
+ %   \node[state] (k2) at (5.5,0) {$k$};
+  %  \node[state] (k3) at (6.5,0) {$k+1$};
+    
+ %   \node[state,draw=none] (l) at (7.5,0){$\ldots$};
+        
+    \node[state] (color) at (3,-2.5) {\tt{color}};
+              ;
+	\node[state] (assemble) at (3,-4) {\tt{assemble}};
+	
+	\node[state] (print) at (3,-5.5) {\tt{print}};
+    
+    \path (color) edge (assemble) 
+    	(assemble) edge (print) 
+    	(input) edge (iter1)
+    	(iter1) edge (iter2)
+		(iterk) edge (color) 
+    	(iter2) edge (color)
+    	(iter2) edge (l)
+    	(l) edge (iterk)
+    	(iter1) edge (color);
+    
+   \path (iterk)  edge [bend left,looseness=2] node[swap] {} (color)
+ %            
+ %         (k2) edge [in=135,out=45,loop] node[swap] {$5/6$} (k2)
+ %             edge [bend right,looseness=1] node[swap] {$1/6$} (k3) 
+ %         (k3) edge [in=135,out=45,loop] node[swap] {$5/6$} (k3)
+              ;
+ 	\end{tikzpicture}
+	\caption{Processus dans l'example \tt{Mandelbrot}}		
+	\end{center}
+\end{figure}
 
 \end{document}
 
