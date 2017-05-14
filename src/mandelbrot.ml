@@ -109,7 +109,7 @@ module Mand (K : Kahn.S) = struct
 					 c = if elet.n = n_tot then
 					 		G.black
 						 else
-						 	G.rgb 0 (128 +127*(elet.n+1)/n_tot) 0} 
+						 	G.rgb (128 +127*(elet.n+1)/n_tot) 0 0} 
 				in	K.put (ToDo_c to_send) q_out >>=
 				(fun () -> loop n_tot n)) 
 		in loop n_tot n_tot 
@@ -123,7 +123,7 @@ module Mand (K : Kahn.S) = struct
 			K.get q_in >>=
 			(fun pix -> match pix with
 			| End_c -> 
-				G.read_key |> ignore;
+				G.read_key () |> ignore;
 				G.close_graph ();
 				K.return ();
 			| ToDo_c pix ->

@@ -1,6 +1,7 @@
 module M = Marshal
 module U = Unix
 module B = Bytes
+module NU = Network_utils
 
 module N : Kahn.S =
 struct 
@@ -24,7 +25,6 @@ struct
 		and sock_out = U.socket domain U.SOCK_STREAM 0 
 		in begin
 			U.setsockopt sock_out U.SO_REUSEADDR true;
-			U.setsockopt sock_in U.SO_REUSEADDR true;
 			U.bind sock_out addr;
 			U.listen sock_out 1;
 			U.connect sock_in addr;
@@ -34,12 +34,17 @@ struct
 
 	let put x outprt = 
 	let res () = 
+		NU.send_obj x outprt
+		(*
 		let bycode = M.to_bytes x [] in
 		ignore (U.write outprt bycode 0 (B.length bycode))
+		*)
 	in res
 
 	let get inprt = 
 	let res () =
+		NU.recv_obj inprt
+		(*
 		let header = B.create M.header_size in
 		(* D'abord on extrait le header pour avoir la taille des données *)
 		begin
@@ -52,6 +57,7 @@ struct
 				M.from_bytes (B.cat header data) 0; 
 			end;
 		end
+		*)
 	in res
 
 	let doco l =  

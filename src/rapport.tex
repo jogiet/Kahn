@@ -145,6 +145,12 @@ lourd courant.
 La communication entre processus se fait au moyen de pipes. Les fonctions
 \tt{put} et \tt{get} font appel au module \tt{Marshal}. 
 
+\subsection{Version réseau interne : \tt{network\_inter}}
+
+Cette implémentation est proche de \tt{pipes}, à l'exception notable que
+la communication entre processus de Kahn se fait sur un réseau \og simulé \fg{}.
+(\ie on envoie les messages à l'adresse \tt{127.0.0.1})
+
 \subsection{Version réseau : \texttt{network}}
 
 Dans la version réseau, il y a principalement trois éléments différents :
@@ -239,14 +245,10 @@ On distingue 5 types de processus :
 	 complexe a subi d'itérations avant de vérifier la condition de
 	 divergence.
 
-\item Le processus \tt{assemble} qui lit tous le pixels envoyés par "color" et
-   qui les regroupe dans une matrice.
 
-\item Le processus \tt{print"}qui lit sur son entrée la matrice envoyée par
-	"assemble" et l'affiche au moyen du module \tt{Graphics}.
-	Ce processus attend que l'utilisateur presse une touche quelconque
-	pour continuer et renvoyer ().
-
+\item Le processus \tt{print}qui lit sur son entrée les pixels envoyés par
+	\tt{color} et les affiche au moyen du module \tt{Graphics}.
+	
 
 \end{enumerate}
 
@@ -273,12 +275,10 @@ Remarque :
         
     \node[state] (color) at (3,-2.5) {\tt{color}};
               ;
-	\node[state] (assemble) at (3,-4) {\tt{assemble}};
+	\node[state] (print) at (3,-4) {\tt{print}};
 	
-	\node[state] (print) at (3,-5.5) {\tt{print}};
     
-    \path (color) edge (assemble) 
-    	(assemble) edge (print) 
+    \path (color) edge (print) 
     	(input) edge (iter1)
     	(iter1) edge (iter2)
 		(iterk) edge (color) 

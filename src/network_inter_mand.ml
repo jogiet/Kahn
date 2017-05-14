@@ -4,4 +4,4 @@ open Network_inter
 module NetInterMand = Mand(N)
 
 let _ = 
-	N.run (NetInterMand.main 1200 1000 5 20)
+	N.run (NetInterMand.main 150 100 5 20)
