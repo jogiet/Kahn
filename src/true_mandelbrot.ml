@@ -57,6 +57,7 @@ module Mand (K : Kahn.S) = struct
 
 
 	let iter 
+			(nb : int)
 			(q_in : sent_iter K.in_port) 
 			(q_next : sent_iter K.out_port) 
 			(q_out : sent_iter K.out_port) 
@@ -74,7 +75,7 @@ module Mand (K : Kahn.S) = struct
 				K.doco [K.put End_i q_next; K.put End_i q_out];
 			| ToDo_i pix ->
 			begin
-				pix.z <- iter pix.z pix.c 2; 
+				pix.z <- iter pix.z pix.c nb; 
 				(* par défaut on itère 10 fois pour un processus *)
 				(if C.norm pix.z < 2. then
 				begin
@@ -160,12 +161,15 @@ module Mand (K : Kahn.S) = struct
 			)
 
 
-	let main : unit K.process =
-	(* Printf.printf "On est pres à lancer les processus \n"; *)
-	let x_size = 150 in
-	let y_size = 100 in
+	let main
+	(x_size : int)
+	(y_size : int)
+	(n_tot : int)
+	(nb : int)
+	: unit K.process =
 
-	let n_tot = 10 in
+	(* Printf.printf "On est pres à lancer les processus \n"; *)
+	let n_tot = 50 in
 	let chan = A.map (K.new_channel) (Array.make (n_tot+1) ()) in  
 	let a_chan = K.new_channel () in
 	let p_chan = K.new_channel () in
@@ -177,11 +181,11 @@ module Mand (K : Kahn.S) = struct
 	    ([input x_size y_size (snd chan.(0))]@
 		(A.to_list 
 			(A.mapi 
-				(fun i ch -> iter (fst ch) (snd chan.(i+1))
+				(fun i ch -> iter nb (fst ch) (snd chan.(i+1))
 				 (snd chan.(n_tot )))
 				(A.sub chan 0 (n_tot-1 ))
 			))@
-		[iter (fst chan.(n_tot -1)) (snd chan.(n_tot)) (snd
+		[iter nb (fst chan.(n_tot -1)) (snd chan.(n_tot)) (snd
 			chan.(n_tot))]@
 		[color n_tot (fst chan.(n_tot)) (snd a_chan)]@
 		[assemble x_size y_size (fst a_chan) (snd p_chan)]@

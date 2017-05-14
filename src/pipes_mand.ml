@@ -2,4 +2,4 @@ open True_mandelbrot
 
 module PipMand = Mand(Pipes.P)
 
-let _ = Pipes.P.run (PipMand.main)
+let _ = Pipes.P.run (PipMand.main 150 100 20 2)

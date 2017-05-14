@@ -44,8 +44,16 @@ FIFO (type 'a channel = 'a Queue.t).
 
 - Version processus lourds : pipes -
 
-[DESCRIPTION DE LA VERSION PIPES]
+Dans la version pipes on utilise un processus lourd pour chaque processus
+de Kahn. Ces processus sont ainsi executés en parallèle par le scheduler
+de l'OS. Ainsi, quand on appel la fonction "doco" sur une liste contenant
+plusieurs processus, on crée un nouveau processus lourd qui éxecute le
+premier processus et on procède récursivement sur le reste de la liste.
+Le cas où il n'y a un seul processus, il est exécuté dans le processus
+lourd courant.
 
+La communication entre processus se fait au moyen de pipes. Les fonctions
+"put" et "get" font appel au module Marshal. 
 
 - Version réseau : network -
 
@@ -103,6 +111,46 @@ entiers que le nombre premier ne divise pas.
 
 - Mandelbrot -
 
-[DESCRIPTION DE MANDELBROT]
+Un réseau de Kahn permettant d'afficher l'ensemble de Mandelbrot.
+
+On distingue 5 types de processus :
+1- le processus "input" qui crée et envoie une structure de donnée
+   contenant l'abscisse et l'ordonnée du pixel en cours de calcul, le
+   nombre complexe correspondant dans le plan complexe. (Remarque : on
+   suppose qu'on souhaite afficher l'ensemble dans une fenêtre de
+   dimension 3:2 et on translate le point 0 du plan complexe au pixel  
+   (2,1) de l'image).
+   À la fin, il envoie un élément "End_i".
+
+2- Les processus "iter" lisent sur leur entrée la structure de donnée
+   envoyée par "input" ou le processus "iter" précedent. Puis, ils
+   itèrent un certain nombre de fois, le calcul de la suite. Si après ce
+   calcul, la condition suffisante de divergence est vérifiée, alors la
+   structure de donée  est
+   envoyée au processus "color". Sinon, elle est envoyée modifiée  au 
+   prochain processus "iter" avec la novelle valeurs de la suite et le
+   nombre d'itérations "subies".
+   Quand le processus "iter" recoit "End_i", alors, il le réenvoie
+   à "color" et au processus "iter". 
+
+3- Le processus "color" qui lit sur son entrée la structure de donnée et
+   qui renvoie sur sa sortie le pixel avec ouleur correspondante au
+   nombre d'itérations subies.
+   - noir si l'élément a subi n_tot itérations,
+   - une variante de vert sinon, plus la teinte est claire, plus le
+	 complexe a subi d'itérations avant de vérifier la condition de
+	 divergence.
+
+4- Le processus "assemble" qui lit tous le pixels envoyés par "color" et
+   qui les regroupe dans une matrice.
+
+5- Le processus "print" qui lit sur son entrée la matrice envoyée par
+	"assemble" et l'affiche au moyen du module Graphics.
+	Ce processus attend que k'utilisateur presse une touche quelconque
+	pour continur et renvoyer ().
+
+Remarque : 
+	L'exemple Mandelbrot lancé sur l'implémentation avec les pipes ne
+	fonctionne que sur des petites valeurs. 
 
 

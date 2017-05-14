@@ -43,6 +43,7 @@ struct
 	let res () = 
 		let rec aux = function
 		| [] -> ()
+		| [x] -> x ()
 		| t::q -> 
 			let i = U.fork () in
 			if i = 0 then
