@@ -20,6 +20,15 @@ _build/
 *.byte
 *.native
 
+#LaTeX files
+
+*.aux
+*.log
+*.pdf
+*.out
+*.gz
+*.toc
+
 # oasis generated files
 setup.data
 setup.log

@@ -1,0 +1,258 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc} 
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{amssymb}   
+\usepackage{verbatim}
+%\usepackage{hyperref}  
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%     Pour les figures    %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{epsfig}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%    Pour les Algorithmes     %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%    Pour les théorêmes et tout...    %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{amsmath,amsthm}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%    Pour une belle mise en page     %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\setlength{\hoffset}{-18pt}         
+\setlength{\oddsidemargin}{0pt}   % Marge gauche sur pages impaires
+\setlength{\evensidemargin}{9pt}  % Marge gauche sur pages paires
+\setlength{\marginparwidth}{54pt} % Largeur de note dans la marge
+\setlength{\textwidth}{481pt}     % Largeur de la zone de texte (17cm)
+\setlength{\voffset}{-18pt}       % Bon pour DOS
+\setlength{\marginparsep}{7pt}    % Séparation de la marge
+\setlength{\topmargin}{0pt}       % Pas de marge en haut
+\setlength{\headheight}{13pt}     % Haut de page
+\setlength{\headsep}{10pt}        % Entre le haut de page et le texte
+\setlength{\footskip}{27pt}       % Bas de page + séparation
+\setlength{\textheight}{708pt}    % Hauteur de la zone de texte (25cm)
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\usepackage{lastpage}
+\renewcommand{\headrulewidth}{1pt}
+\fancyhead[L]{\textsc{Réseaux de KAHN}}
+\fancyhead[R]{J. \textsc{Giet} \& A. \textsc{Thibault}}
+\fancyfoot[C]{\thepage/\pageref{LastPage}}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%          Raccourcis usuels         %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%   Symboles mathématiques %%%%%%
+\newcommand{\K}{\ensuremath\mathbb{K}}
+\newcommand{\N}{\ensuremath\mathbb{N}}
+\newcommand{\Z}{\ensuremath\mathbb{Z}}
+\newcommand{\Q}{\ensuremath\mathbb{Q}}
+\newcommand{\R}{\ensuremath\mathbb{R}}
+\newcommand{\U}{\ensuremath\mathbb{U}}
+\newcommand{\C}{\ensuremath\mathbb{C}}
+\newcommand{\E}{\ensuremath\mathbb{E}}
+\newcommand{\V}{\ensuremath\mathbb{V}}
+\renewcommand{\P}{\mathcal{P}}
+
+
+%%%%%  Parenthèses & autres %%%%%%
+\newcommand{\po}{\left(} % grande parenthèse ouvrante
+\newcommand{\pf}{\right)} % grande parenthèse fermante
+\newcommand{\ao}{\left\lbrace}
+\newcommand{\af}{\right\rbrace}
+
+%%%% Raccourcis usuels   %%%%
+\newcommand{\ie}{\textit{i.e.}}
+\newcommand{\eg}{\textit{e.g.}}
+\newcommand{\cf}{\textit{cf.}}
+\newcommand{\ssi}{si et seulement si }
+
+%%%%  Pour le module math   %%%%
+\newcommand{\et}{\text{ et }}
+\newcommand{\ou}{\text{ ou }}
+\newcommand{\car}{\text{ car }}
+\newcommand{\avec}{\text{ avec }}
+
+%%%%  Flêches et autres  %%%%
+\renewcommand{\le}{\leqslant}
+\renewcommand{\ge}{\geqslant}
+\renewcommand{\leq}{\leqslant}
+\renewcommand{\geq}{\geqslant}
+\renewcommand{\emptyset}{\varnothing}
+\newcommand{\la}{\leftarrow}
+\newcommand{\xla}{\xleftarrow}
+\newcommand{\ra}{\rightarrow}
+\newcommand{\xra}{\xrightarrow}
+\renewcommand{\tt}[1]{\texttt{#1}}
+
+\title{\textsc{Réseaux de KAHN}}   % Mettre le titre içi!!
+\author{Josselin \textsc{Giet}, Alexis \textsc{Thibault}}  % Renseignerle nom de l'auteur
+\date{1Pour le 15/05/2017}    % Par défaut ,on ne met pas de date
+
+\begin{document}
+\maketitle
+
+\tableofcontents
+
+
+
+
+
+\section{Implémentations}
+
+
+\subsection{Version séquentielle : \texttt{sequential}}
+
+Dans la version séquentielle, un seul processus lourd et un seul thread sont
+utilisés. Un "process" est une fonction qui, lorsqu'on l'exécute, effectue une
+étape de calcul, et renvoie soit le résultat, soit sa propre continuation.
+
+Un exemple intéressant pour comprendre comment le principe fonctionne est la
+fonction "bind". Le processus renvoyé par \texttt{bind x f}, par exemple, effectue une
+étape de \tt{x}. Dans le cas où \tt{x} renvoie un résultat, la suite est le processus
+\tt{f x}. Si \tt{x} renvoie une continuation \tt{y}, la suite de \tt{bind x f} est le processus
+\tt{bind y f}.
+
+De façon générale, l'exécution d'un processus consiste en une étape de
+réduction. Pour chaque tâche parallèle, on effectue séquentiellement une
+réduction sur chaque tâche.
+
+Les fonctions \tt{put} et \tt{get} consistent simplement à lire ou écrire dans des
+FIFO (\tt{type 'a channel = 'a Queue.t}).
+
+
+\subsection{Version processus lourds : \texttt{pipes}}
+
+Dans la version pipes on utilise un processus lourd pour chaque processus
+de Kahn. Ces processus sont ainsi exécutes en parallèle par le scheduler
+de l'OS. Ainsi, quand on appel la fonction \tt{doco} sur une liste contenant
+plusieurs processus, on crée un nouveau processus lourd qui exécute le
+premier processus et on procède récursivement sur le reste de la liste.
+Le cas où il n'y a un seul processus, il est exécuté dans le processus
+lourd courant.
+
+La communication entre processus se fait au moyen de pipes. Les fonctions
+\tt{put} et \tt{get} font appel au module \tt{Marshal}. 
+
+\subsection{Version réseau : \texttt{network}}
+
+Dans la version réseau, il y a principalement trois éléments différents :
+\begin{enumerate}
+
+\item Un serveur, qui, dans une boucle infinie, communique avec les clients afin de
+distribuer les tâches et transmettre les messages.
+\item Un nombre arbitraire de clients de travail, qui attendent des tâches.
+\item Le client principal, sur lequel on appelle \tt{run}.
+
+
+\end{enumerate}
+
+Les trois utilisent le même code compilé, de façon à pouvoir transmettre des
+fonctions par le module \tt{Marshal}, mais une option permet de lancer le serveur
+(\tt{-s}), un client de travail (\tt{-w}), ou le client principal (pas d'option).
+
+Un canal de communication est représenté par un entier, fourni par le serveur.
+La fonction \tt{new\_channel ()} fait donc un appel au serveur ; c'est pourquoi il
+est nécessaire de geler l'évaluation de \tt{main} dans Primes ou \tt{Example} jusqu'à ce
+que la connexion soit établie (on a transformé \tt{main} en fonction \tt{
+unit -> 'a process}). Lors de l'envoi d'un message sur un canal, le client envoie
+au serveur un objet \tt{Message(v,q)} contenant la valeur du message et le numéro du
+canal. Le serveur l'ajoute alors à la file du canal correspondant. Lorsque le
+client effectue une requête \tt{Get}, il envoie une demande au serveur, puis passe
+le process correspondant dans un état d'attente. Un process en attente vérifie
+si le serveur a transmis le message (auquel cas il doit avoir été mis dans un
+buffer chez le client), et si ce n'est pas le cas, il reste en attente et
+passe la main.
+
+Une difficulté à laquelle nous avons été confrontés est le fait que lors de la
+transmission de valeurs fonctionnelles par \tt{Marshal}, la valeur obtenue contient
+aussi la clôture. Ainsi, les buffers du client, servant à la réception de la
+réponse du serveur à une requête \tt{Get}, n'étaient pas les mêmes selon le contexte,
+ce qui conduisait à un comportement incohérent. Il suffisait en fait de changer
+buffers en variable globale (hors du module \tt{Network.N}) pour résoudre ce
+problème.
+
+Sur les applications example et primes, cette méthode n'est pas très efficace.
+En effet, ces deux applications utilisent les canaux de manière intensive ; or,
+la communication réseau est très lente. Il lui faut donc plusieurs secondes pour
+trouver une centaine de nombres premiers.
+
+
+
+\section{Applications}
+
+
+\subsection{\tt{Example}}
+
+Un réseau de Kahn minimal, où un process énumère les entiers sur un canal, et
+l'autre les lit et les affiche.
+
+
+\subsection{\tt{Primes}}
+
+Un réseau de Kahn issu du TP $n^\circ 5$, qui met en oeuvre le crible d'Eratosthene,
+en créant, pour chaque nombre premier, un processus qui ne transmet que les
+entiers que le nombre premier ne divise pas.
+
+\subsection{\tt{Mandelbrot}}
+
+Un réseau de Kahn permettant d'afficher l'ensemble de Mandelbrot.
+
+On distingue 5 types de processus :
+\begin{enumerate}
+
+\item le processus \tt{input} qui crée et envoie une structure de donnée
+   contenant l'abscisse et l'ordonnée du pixel en cours de calcul, le
+   nombre complexe correspondant dans le plan complexe. (Remarque : on
+   suppose qu'on souhaite afficher l'ensemble dans une fenêtre de
+   dimension 3: 2 et on translate le point 0 du plan complexe au pixel  
+   (2,1) de l'image).
+   À la fin, il envoie un élément \tt{End\_i}.
+
+\item Les processus \tt{iter} lisent sur leur entrée la structure de donnée
+   envoyée par "input" ou le processus \tt{iter} précedent. Puis, ils
+   itèrent un certain nombre de fois, le calcul de la suite. Si après ce
+   calcul, la condition suffisante de divergence est vérifiée, alors la
+   structure de donnée  est
+   envoyée au processus \tt{color}. Sinon, elle est envoyée modifiée  au 
+   prochain processus \tt{iter} avec la novelle valeurs de la suite et le
+   nombre d'itérations \og subies\fg .
+   Quand le processus \tt{iter} recoit \tt{End\_i}, alors, il le renvoie
+   à \tt{color} et au processus \tt{iter} suivant. 
+
+\item Le processus \tt{color} qui lit sur son entrée la structure de donnée et
+   qui renvoie sur sa sortie le pixel avec couleur correspondante au
+   nombre d'itérations subies.
+   - noir si l'élément a subi \tt{n\_tot} itérations,
+   - une variante de vert sinon, plus la teinte est claire, plus le
+	 complexe a subi d'itérations avant de vérifier la condition de
+	 divergence.
+
+\item Le processus \tt{assemble} qui lit tous le pixels envoyés par "color" et
+   qui les regroupe dans une matrice.
+
+\item Le processus \tt{print"}qui lit sur son entrée la matrice envoyée par
+	"assemble" et l'affiche au moyen du module \tt{Graphics}.
+	Ce processus attend que l'utilisateur presse une touche quelconque
+	pour continuer et renvoyer ().
+
+
+\end{enumerate}
+
+Remarque : 
+	L'exemple Mandelbrot lancé sur l'implémentation avec les pipes ne
+	fonctionne que sur des petites valeurs. 
+
+
+
+\end{document}
+
