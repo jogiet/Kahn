@@ -95,5 +95,6 @@ clean:
 
 realclean: clean
 	rm -f *~
+	rm -f *.pdf
 
 cleanall: realclean
