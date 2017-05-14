@@ -114,51 +114,25 @@ module Mand (K : Kahn.S) = struct
 				(fun () -> loop n_tot n)) 
 		in loop n_tot n_tot 
 
-	let assemble	
+	let print	
 		(x_size : int)
 		(y_size : int)
 		(q_in : sent_color K.in_port)
-		(q_out : G.color array array K.out_port)
 		: unit K.process = 
-		let rec loop tab =
+		let rec loop () =
 			K.get q_in >>=
 			(fun pix -> match pix with
 			| End_c -> 
-				K.put  tab q_out 
+				G.read_key |> ignore;
+				G.close_graph ();
+				K.return ();
 			| ToDo_c pix ->
 			begin
-				tab.(pix.x).(pix.y) <- pix.c;
-				loop tab;
+				G.set_color pix.c;
+				G.plot pix.x pix.y;
+				loop ();
 			end )
-		in loop (Array.make_matrix x_size y_size G.blue)
-
-
-	let print
-		(x_size : int)
-		(y_size : int)
-		(q_in : G.color array array K.in_port)
-		: unit K.process =
-		(K.get q_in) >>= 
-		(fun tab ->
-			G.open_graph "";
-			G.resize_window x_size y_size;
-			for x= 0 to x_size -1 do
-				for y = 0 to y_size -1 do
-					G.set_color tab.(x).(y);
-					G.plot x y;
-				done
-			done;
-			(*
-			let t0 = U.gettimeofday () in
-			
-			while t0 +. 4. > (U.gettimeofday ()) do
-				()
-			done;
-			*)
-			G.read_key () |> ignore;
-			G.close_graph ();
-			K.return ();
-			)
+		in loop ()
 
 
 	let main
@@ -168,15 +142,9 @@ module Mand (K : Kahn.S) = struct
 	(nb : int)
 	: unit K.process =
 
-	(* Printf.printf "On est pres à lancer les processus \n"; *)
 	let n_tot = 50 in
 	let chan = A.map (K.new_channel) (Array.make (n_tot+1) ()) in  
 	let a_chan = K.new_channel () in
-	let p_chan = K.new_channel () in
-	(*
-	K.return (Printf.printf "On est pres à lancer les processus \n")
-	>>=
-	*)
 	let process_l = 
 	    ([input x_size y_size (snd chan.(0))]@
 		(A.to_list 
@@ -188,9 +156,10 @@ module Mand (K : Kahn.S) = struct
 		[iter nb (fst chan.(n_tot -1)) (snd chan.(n_tot)) (snd
 			chan.(n_tot))]@
 		[color n_tot (fst chan.(n_tot)) (snd a_chan)]@
-		[assemble x_size y_size (fst a_chan) (snd p_chan)]@
-		[print x_size y_size (fst p_chan)]) 
+		[print x_size y_size (fst a_chan)])
 	in
+	G.open_graph "";
+	G.resize_window x_size y_size;
 	K.doco process_l
 		
 
