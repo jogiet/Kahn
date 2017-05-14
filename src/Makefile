@@ -3,9 +3,23 @@ OCAMLBUILD=ocamlbuild -classic-display \
 		-libs unix,graphics
 TARGET=native
 
-all: primes
+all: example primes mandelbrot rapport 
 
-example:pipes sequential network_test rapport
+##################################################################
+##            Example
+##################################################################
+
+
+example:pipes sequential networkinter 
+
+pipes:
+	$(OCAMLBUILD) pipes_test.$(TARGET)
+
+sequential:
+	$(OCAMLBUILD) seq_test.$(TARGET)
+
+networkinter:
+	$(OCAMLBUILD) network_inter_test.$(TARGET)
 
 #network_try:
 #	$(OCAMLBUILD) network_try.$(TARGET)
@@ -13,43 +27,45 @@ example:pipes sequential network_test rapport
 #	-killall -q network_try.$(TARGET)
 #	./network_try.$(TARGET) & ./network_try_client.$(TARGET)
 
-network: network_test network_mand
-
 network_test:
 	$(OCAMLBUILD) network_test.$(TARGET)
+	./network_test.$(TARGET) -s
 
-network_mand:
-	$(OCAMLBUILD) network_mand.$(TARGET)
-
-#	./network_test.$(TARGET) -s
+##################################################################
+##            Primes
+##################################################################
 
 primes: primes_pipes primes_network_inter 
-
-pipes:
-	$(OCAMLBUILD) pipes_test.$(TARGET)
-
-sequential:
-	$(OCAMLBUILD) sequential_test.$(TARGET)
-
-#networkinter:
-#	$(OCAMLBUILD) network_inter_test.$(TARGET)
 
 example:
 	$(OCAMLBUILD) example.$(TARGET)
 
 primes_pipes:
-	$(OCAMLBUILD) primes_pipes.$(TARGET)
+	$(OCAMLBUILD) pipes_primes.$(TARGET)
 
 primes_network_inter:
-	$(OCAMLBUILD) primes_network_inter.$(TARGET)
+	$(OCAMLBUILD) network_inter_primes.$(TARGET)
 
-mandelbrot:  seq_mand pipes_mand
+
+##################################################################
+##           Mandelbrot 
+##################################################################
+
+mandelbrot:  seq_mand pipes_mand network_inter_mand
 
 seq_mand:
 	$(OCAMLBUILD) seq_mand.$(TARGET)
 
 pipes_mand:
 	$(OCAMLBUILD) pipes_mand.$(TARGET)
+
+network_inter_mand:
+	$(OCAMLBUILD) network_inter_mand.$(TARGET)
+	
+
+##################################################################
+##            Un essai de communication sur le réseau de l'ÉNS
+##################################################################
 
 try: try_client try_server
 
@@ -59,8 +75,16 @@ try_client:
 try_server:
 	$(OCAMLBUILD) network_try.$(TARGET)
 
+##################################################################
+##           Rapport 
+##################################################################
+
 rapport:
 	pdflatex rapport.tex
+
+##################################################################
+##           CLEAN
+##################################################################
 
 clean:
 #	$(OCAMLBUILD) -clean

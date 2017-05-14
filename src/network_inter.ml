@@ -23,6 +23,8 @@ struct
 		let sock_in = U.socket domain U.SOCK_STREAM 0 
 		and sock_out = U.socket domain U.SOCK_STREAM 0 
 		in begin
+			U.setsockopt sock_out U.SO_REUSEADDR true;
+			U.setsockopt sock_in U.SO_REUSEADDR true;
 			U.bind sock_out addr;
 			U.listen sock_out 1;
 			U.connect sock_in addr;
@@ -56,12 +58,12 @@ struct
 	let res () = 
 		let rec aux = function
 		| [] -> ()
+		| [x] -> x ()
 		| t::q -> 
 			let i = U.fork () in
 			if i = 0 then
 			begin
 				t ();
-				Printf.printf "Ca chiale \n";
 				exit 0;
 			end
 			else
