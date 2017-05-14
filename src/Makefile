@@ -5,7 +5,7 @@ TARGET=native
 
 all: primes
 
-example:pipes sequential networkinter rapport
+example:pipes sequential network_test rapport
 
 #network_try:
 #	$(OCAMLBUILD) network_try.$(TARGET)
@@ -13,9 +13,15 @@ example:pipes sequential networkinter rapport
 #	-killall -q network_try.$(TARGET)
 #	./network_try.$(TARGET) & ./network_try_client.$(TARGET)
 
+network: network_test network_mand
+
 network_test:
 	$(OCAMLBUILD) network_test.$(TARGET)
-	./network_test.$(TARGET) -s
+
+network_mand:
+	$(OCAMLBUILD) network_mand.$(TARGET)
+
+#	./network_test.$(TARGET) -s
 
 primes: primes_pipes primes_network_inter 
 
