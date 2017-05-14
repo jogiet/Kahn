@@ -37,13 +37,16 @@ primes_pipes:
 primes_network_inter:
 	$(OCAMLBUILD) primes_network_inter.$(TARGET)
 
-mandelbrot: basic true
+mandelbrot: basic true pipes_mand
 
 basic:
 	$(OCAMLBUILD) mandelbrot.$(TARGET)
 
 true:
 	$(OCAMLBUILD) seq_mand.$(TARGET)
+
+pipes_mand:
+	$(OCAMLBUILD) pipes_mand.$(TARGET)
 
 try: try_client try_server
 

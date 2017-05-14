@@ -1,4 +1,5 @@
 open Kahn
+module U = Unix
 module G = Graphics
 module C = Complex
 module S = String
@@ -37,21 +38,21 @@ module Mand (K : Kahn.S) = struct
 		(q_out : sent_iter K.out_port)
 		: unit K.process = 
 		let rec loop x y = 
-		if y = y_size then
-			K.put End_i q_out
-		else if x = x_size then
-			loop 0 (y+1)
-		else
-		begin
-			let x_size_f = float_of_int x_size
-			and y_size_f = float_of_int y_size in
-			let z = 
-				{C.re = 3.*.(float_of_int x)/.x_size_f -. 2.;
-				 C.im = 2.*.(float_of_int y)/.y_size_f -. 1.} in
-			let to_send = {x = x ; y = y ; c = z ; z = z ; n = 0} in
-				K.put (ToDo_i to_send) q_out >>=
-				(fun () -> loop (x+1) y)
-		end
+			if y = y_size then
+				K.put End_i q_out
+			else if x = x_size then
+				loop 0 (y+1)
+			else
+			begin
+				let x_size_f = float_of_int x_size
+				and y_size_f = float_of_int y_size in
+				let z = 
+					{C.re = 3.*.(float_of_int x)/.x_size_f -. 2.;
+					 C.im = 2.*.(float_of_int y)/.y_size_f -. 1.} in
+				let to_send = {x = x ; y = y ; c = z ; z = z ; n = 0} in
+					K.put (ToDo_i to_send) q_out >>=
+					(fun () -> loop (x+1) y)
+			end
 		in loop 0 0
 
 
@@ -70,12 +71,10 @@ module Mand (K : Kahn.S) = struct
 
 			in match sent with
 			| End_i ->
-			begin
-				K.doco [K.put End_i q_next; K.put End_i q_out]
-			end
+				K.doco [K.put End_i q_next; K.put End_i q_out];
 			| ToDo_i pix ->
 			begin
-				pix.z <- iter pix.z pix.c 10; 
+				pix.z <- iter pix.z pix.c 2; 
 				(* par défaut on itère 10 fois pour un processus *)
 				(if C.norm pix.z < 2. then
 				begin
@@ -90,7 +89,7 @@ module Mand (K : Kahn.S) = struct
 	loop ()
 	
 	let color 
-			(n : int) (* Nombre d'itérations restantes *)
+			(n_tot : int) (* Nombre d'itérations restantes *)
 			(q_in : sent_iter K.in_port)
 			(q_out : sent_color K.out_port)
 		: unit K.process = 
@@ -101,7 +100,7 @@ module Mand (K : Kahn.S) = struct
 			 	if n = 0 then
 					K.put End_c  q_out 
 				else
-					loop n_tot (n-1)
+					loop n_tot (n-1);
 			| ToDo_i elet -> 
 				let to_send = 
 					{x = elet.x;
@@ -112,7 +111,7 @@ module Mand (K : Kahn.S) = struct
 						 	G.rgb 0 (128 +127*(elet.n+1)/n_tot) 0} 
 				in	K.put (ToDo_c to_send) q_out >>=
 				(fun () -> loop n_tot n)) 
-		in loop n n 
+		in loop n_tot n_tot 
 
 	let assemble	
 		(x_size : int)
@@ -137,7 +136,6 @@ module Mand (K : Kahn.S) = struct
 		(x_size : int)
 		(y_size : int)
 		(q_in : G.color array array K.in_port)
-		(q_out : string K.out_port)
 		: unit K.process =
 		(K.get q_in) >>= 
 		(fun tab ->
@@ -149,36 +147,44 @@ module Mand (K : Kahn.S) = struct
 					G.plot x y;
 				done
 			done;
+			let t0 = U.gettimeofday () in
+			while t0 +. 4. > (U.gettimeofday ()) do
+				()
+			done;
 			G.read_key () |> ignore;
-			K.put "On a fini : appuyer sur une touche pour quitter \n"
-			q_out ;
+			G.close_graph ();
+			exit 0;
 			)
 
 
 	let main : unit K.process =
-	Printf.printf "On est pres à lancer les processus \n";
-	let x_size = 6 in
-	let y_size = 4 in
-	let n_tot = 2 in
+	(* Printf.printf "On est pres à lancer les processus \n"; *)
+	let x_size = 1200 in
+	let y_size = 800 in
+
+	let n_tot = 50 in
 	let chan = A.map (K.new_channel) (Array.make (n_tot+1) ()) in  
 	let a_chan = K.new_channel () in
 	let p_chan = K.new_channel () in
-	let f_chan = K.new_channel () in
-	Printf.printf "On est pres à lancer les processus \n";
-	let process_l = ([input x_size y_size (snd chan.(0))]@
+	(*
+	K.return (Printf.printf "On est pres à lancer les processus \n")
+	>>=
+	*)
+	let process_l = 
+	    ([input x_size y_size (snd chan.(0))]@
 		(A.to_list 
 			(A.mapi 
 				(fun i ch -> iter (fst ch) (snd chan.(i+1))
-				 (snd chan.(n_tot -1)))
-				(A.sub chan 0 (n_tot -1))
+				 (snd chan.(n_tot )))
+				(A.sub chan 0 (n_tot-1 ))
 			))@
-			[color n_tot (fst chan.(n_tot -1)) (snd a_chan)]@
-			[assemble x_size y_size (fst a_chan) (snd p_chan)]@
-			[print x_size y_size (fst p_chan) (snd f_chan)]) 
-	in begin 
-	Printf.printf "On est pres à lancer les processus \n";
-	K.doco process_l;
-	end
+		[iter (fst chan.(n_tot -1)) (snd chan.(n_tot)) (snd
+			chan.(n_tot))]@
+		[color n_tot (fst chan.(n_tot)) (snd a_chan)]@
+		[assemble x_size y_size (fst a_chan) (snd p_chan)]@
+		[print x_size y_size (fst p_chan)]) 
+	in
+	K.doco process_l
 		
 
 end

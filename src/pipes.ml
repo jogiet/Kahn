@@ -48,7 +48,6 @@ struct
 			if i = 0 then
 			begin
 				t ();
-				Printf.printf "Ca chiale \n";
 				exit 0;
 			end
 			else
