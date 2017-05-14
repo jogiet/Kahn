@@ -1,4 +1,4 @@
-open Mandelbrot
+open Mandelbrotnaif
 open Network_inter
 
 module NetInterMand = Mand(N)

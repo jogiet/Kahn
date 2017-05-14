@@ -4,7 +4,9 @@ module C = Complex
 module S = String
 module A = Array
 
+let printf s = print_string s; flush_all ();
 
+  
 module Mand (K : Kahn.S) = struct
 	module K = K
 	module KLib = Lib(K)
@@ -122,11 +124,11 @@ module Mand (K : Kahn.S) = struct
 				for y = y_size -1 downto 0 do
 					for x = 0 to x_size -1 do
 						if tab.(x).(y) then
-							Printf.printf "0"
+							printf "0"
 						else
-							Printf.printf " "
+							printf " "
 					done;
-					Printf.printf "\n";
+					printf "\n";
 				done;
 				K.return ();
 			| ToDo_c pix ->

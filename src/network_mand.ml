@@ -1,7 +1,7 @@
 open Network
 open Printf
 
-module NetPrimes = Mandelbrot.Mand(N)
+module NetPrimes = Mandelbrotnaif.Mand(N)
 
 let main =
   let is_server = ref false in
@@ -33,7 +33,7 @@ let main =
       let task = None in
       Network_utils.run_client (N.client_main ?task) addr
     else
-      let task () = NetPrimes.main 1500 1000 20 5 in 
+      let task () = NetPrimes.main 15 10 5 5 in 
       Network_utils.run_client (N.client_main ~task) addr
   end
     

@@ -115,21 +115,22 @@
 \subsection{Version séquentielle : \texttt{sequential}}
 
 Dans la version séquentielle, un seul processus lourd et un seul thread sont
-utilisés. Un "process" est une fonction qui, lorsqu'on l'exécute, effectue une
+utilisés. Un "process" est ici une fonction qui, lorsqu'on l'exécute, effectue une
 étape de calcul, et renvoie soit le résultat, soit sa propre continuation.
 
 Un exemple intéressant pour comprendre comment le principe fonctionne est la
-fonction "bind". Le processus renvoyé par \texttt{bind x f}, par exemple, effectue une
-étape de \tt{x}. Dans le cas où \tt{x} renvoie un résultat, la suite est le processus
-\tt{f x}. Si \tt{x} renvoie une continuation \tt{y}, la suite de \tt{bind x f} est le processus
+fonction "bind". Le process renvoyé par \texttt{bind x f}, par exemple, effectue une
+étape de \tt{x}. Dans le cas où \tt{x} renvoie un résultat, la suite est le process
+\tt{f x}. Si \tt{x} renvoie une continuation \tt{y}, la suite de \tt{bind x f} est le process
 \tt{bind y f}.
 
-De façon générale, l'exécution d'un processus consiste en une étape de
+De façon générale, l'exécution d'un process consiste en une étape de
 réduction. Pour chaque tâche parallèle, on effectue séquentiellement une
 réduction sur chaque tâche.
 
 Les fonctions \tt{put} et \tt{get} consistent simplement à lire ou écrire dans des
-FIFO (\tt{type 'a channel = 'a Queue.t}).
+FIFO (\tt{type 'a channel = 'a Queue.t}), et dans le cas où \tt{get} bloque,
+ à laisser la main.
 
 
 \subsection{Version processus lourds : \texttt{pipes}}
@@ -149,30 +150,28 @@ La communication entre processus se fait au moyen de pipes. Les fonctions
 
 Cette implémentation est proche de \tt{pipes}, à l'exception notable que
 la communication entre processus de Kahn se fait sur un réseau \og simulé \fg{}.
-(\ie on envoie les messages à l'adresse \tt{127.0.0.1})
+(\ie ~on envoie les messages à l'adresse \tt{127.0.0.1})
 
 \subsection{Version réseau : \texttt{network}}
 
 Dans la version réseau, il y a principalement trois éléments différents :
 \begin{enumerate}
-
 \item Un serveur, qui, dans une boucle infinie, communique avec les clients afin de
 distribuer les tâches et transmettre les messages.
 \item Un nombre arbitraire de clients de travail, qui attendent des tâches.
 \item Le client principal, sur lequel on appelle \tt{run}.
-
-
 \end{enumerate}
 
 Les trois utilisent le même code compilé, de façon à pouvoir transmettre des
 fonctions par le module \tt{Marshal}, mais une option permet de lancer le serveur
 (\tt{-s}), un client de travail (\tt{-w}), ou le client principal (pas d'option).
+Les clients exécutent un code similaire à \tt{sequential}.
 
 Un canal de communication est représenté par un entier, fourni par le serveur.
 La fonction \tt{new\_channel ()} fait donc un appel au serveur ; c'est pourquoi il
 est nécessaire de geler l'évaluation de \tt{main} dans Primes ou \tt{Example} jusqu'à ce
-que la connexion soit établie (on a transformé \tt{main} en fonction \tt{
-unit -> 'a process}). Lors de l'envoi d'un message sur un canal, le client envoie
+que la connexion soit établie (on a transformé \tt{main} en fonction \tt{unit -> 'a process}).
+Lors de l'envoi d'un message sur un canal, le client envoie
 au serveur un objet \tt{Message(v,q)} contenant la valeur du message et le numéro du
 canal. Le serveur l'ajoute alors à la file du canal correspondant. Lorsque le
 client effectue une requête \tt{Get}, il envoie une demande au serveur, puis passe
@@ -253,8 +252,7 @@ On distingue 5 types de processus :
 \end{enumerate}
 
 Remarque : 
-	L'exemple Mandelbrot lancé sur l'implémentation avec les pipes ne
-	fonctionne que sur des petites valeurs. 
+	L'exemple Mandelbrot, utilisant le module Graphics, a parfois des problèmes lors de l'utilisation de nombreux processus lourds. Il fait également planter la version réseau, car il interrompt les processus. C'est pourquoi nous avons aussi implémenté \tt{mandelbrotnaif.ml}, qui imprime dans la console.
 
 \begin{figure}[H]
 	\begin{center}	
