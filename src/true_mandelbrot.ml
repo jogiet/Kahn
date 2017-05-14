@@ -156,15 +156,15 @@ module Mand (K : Kahn.S) = struct
 
 
 	let main : unit K.process =
-	Printf.printf "On est près à lancer les processus \n";
-	let x_size = 60 in
-	let y_size = 40 in
+	Printf.printf "On est pres à lancer les processus \n";
+	let x_size = 6 in
+	let y_size = 4 in
 	let n_tot = 2 in
 	let chan = A.map (K.new_channel) (Array.make (n_tot+1) ()) in  
 	let a_chan = K.new_channel () in
 	let p_chan = K.new_channel () in
 	let f_chan = K.new_channel () in
-	Printf.printf "On est près à lancer les processus \n";
+	Printf.printf "On est pres à lancer les processus \n";
 	let process_l = ([input x_size y_size (snd chan.(0))]@
 		(A.to_list 
 			(A.mapi 
@@ -176,7 +176,7 @@ module Mand (K : Kahn.S) = struct
 			[assemble x_size y_size (fst a_chan) (snd p_chan)]@
 			[print x_size y_size (fst p_chan) (snd f_chan)]) 
 	in begin 
-	Printf.printf "On est près à lancer les processus \n";
+	Printf.printf "On est pres à lancer les processus \n";
 	K.doco process_l;
 	end
 		

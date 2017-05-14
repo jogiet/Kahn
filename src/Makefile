@@ -1,6 +1,6 @@
 OCAMLBUILD=ocamlbuild -classic-display \
 		-tags annot,debug,thread \
-		-libs unix
+		-libs unix,graphics
 TARGET=native
 
 all: primes
@@ -37,7 +37,13 @@ primes_pipes:
 primes_network_inter:
 	$(OCAMLBUILD) primes_network_inter.$(TARGET)
 
+mandelbrot: basic true
 
+basic:
+	$(OCAMLBUILD) mandelbrot.$(TARGET)
+
+true:
+	$(OCAMLBUILD) seq_mand.$(TARGET)
 
 try: try_client try_server
 
