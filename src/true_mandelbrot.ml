@@ -147,22 +147,25 @@ module Mand (K : Kahn.S) = struct
 					G.plot x y;
 				done
 			done;
+			(*
 			let t0 = U.gettimeofday () in
+			
 			while t0 +. 4. > (U.gettimeofday ()) do
 				()
 			done;
+			*)
 			G.read_key () |> ignore;
 			G.close_graph ();
-			exit 0;
+			K.return ();
 			)
 
 
 	let main : unit K.process =
 	(* Printf.printf "On est pres à lancer les processus \n"; *)
-	let x_size = 1200 in
-	let y_size = 800 in
+	let x_size = 150 in
+	let y_size = 100 in
 
-	let n_tot = 50 in
+	let n_tot = 10 in
 	let chan = A.map (K.new_channel) (Array.make (n_tot+1) ()) in  
 	let a_chan = K.new_channel () in
 	let p_chan = K.new_channel () in

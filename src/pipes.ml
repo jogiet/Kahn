@@ -60,8 +60,8 @@ struct
 
 	let return x = (fun () -> x)
 
-	let bind e e' = 
-		fun () -> e' (e ()) ()
+	let bind p f = 
+		fun () -> f (p ()) ()
 
 
 	let run e = e ()
