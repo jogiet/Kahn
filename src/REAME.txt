@@ -1,0 +1,108 @@
+
+--- RESEAUX DE KAHN ---
+
+Projet du cours de Systèmes et Réseaux
+Josselin GIET, Alexis THIBAULT
+
+
+
+
+Plusieurs implémentations des réseaux de Kahn ont été réalisées :
+- sequential
+- pipes
+- network
+
+Les exemples sur lesquels les différentes implémentations ont été testées sont :
+- example
+- primes
+- mandelbrot
+
+
+
+-- IMPLEMENTATIONS --
+
+
+- Version séquentielle : sequential -
+
+Dans la version séquentielle, un seul processus lourd et un seul thread sont
+utilisés. Un "process" est une fonction qui, lorsqu'on l'exécute, effectue une
+étape de calcul, et renvoie soit le résultat, soit sa propre continuation.
+
+Un exemple intéressant pour comprendre comment le principe fonctionne est la
+fonction "bind". Le processus renvoyé par "bind x f", par exemple, effectue une
+étape de x. Dans le cas où x renvoie un résultat, la suite est le processus
+"f x". Si x renvoie une continuation y, la suite de "bind x f" est le processus
+"bind y f".
+
+De façon générale, l'exécution d'un processus consiste en une étape de
+réduction. Pour chaque tâche parallèle, on effectue séquentiellement une
+réduction sur chaque tâche.
+
+Les fonctions "put" et "get" consistent simplement à lire ou écrire dans des
+FIFO (type 'a channel = 'a Queue.t).
+
+
+- Version processus lourds : pipes -
+
+[DESCRIPTION DE LA VERSION PIPES]
+
+
+- Version réseau : network -
+
+Dans la version réseau, il y a principalement trois éléments différents :
+* Un serveur, qui, dans une boucle infinie, communique avec les clients afin de
+distribuer les tâches et transmettre les messages.
+* Un nombre arbitraire de clients de travail, qui attendent des tâches.
+* Le client principal, sur lequel on appelle "run".
+
+Les trois utilisent le même code compilé, de façon à pouvoir transmettre des
+fonctions par le module Marshal, mais une option permet de lancer le serveur
+(-s), un client de travail (-w), ou le client principal (pas d'option).
+
+Un canal de communication est représenté par un entier, fourni par le serveur.
+La fonction "new_channel ()" fait donc un appel au serveur ; c'est pourquoi il
+est nécessaire de geler l'évaluation de "main" dans Primes ou Example jusqu'à ce
+que la connexion soit établie (on a transformé "main" en fonction
+unit -> 'a process). Lors de l'envoi d'un message sur un canal, le client envoie
+au serveur un objet Message(v,q) contenant la valeur du message et le numéro du
+canal. Le serveur l'ajoute alors à la file du canal correspondant. Lorsque le
+client effectue une requête Get, il envoie une demande au serveur, puis passe
+le process correspondant dans un état d'attente. Un process en attente vérifie
+si le serveur a transmis le message (auquel cas il doit avoir été mis dans un
+buffer chez le client), et si ce n'est pas le cas, il reste en attente et
+passe la main.
+
+Une difficulté à laquelle nous avons été confrontés est le fait que lors de la
+transmission de valeurs fonctionnelles par Marshal, la valeur obtenue contient
+aussi la clôture. Ainsi, les buffers du client, servant à la réception de la
+réponse du serveur à une requête Get, n'étaient pas les mêmes selon le contexte,
+ce qui conduisait à un comportement incohérent. Il suffisait en fait de changer
+buffers en variable globale (hors du module Network.N) pour résoudre ce
+problème.
+
+Sur les applications example et primes, cette méthode n'est pas très efficace.
+En effet, ces deux applications utilisent les canaux de manière intensive ; or,
+la communication réseau est très lente. Il lui faut donc plusieurs secondes pour
+trouver une centaine de nombres premiers.
+
+
+
+-- APPLICATIONS --
+
+
+- Example -
+
+Un réseau de Kahn minimal, où un process énumère les entiers sur un canal, et
+l'autre les lit et les affiche.
+
+- Primes -
+
+Un réseau de Kahn issu du TP n°5, qui met en oeuvre le crible d'Eratosthene,
+en créant, pour chaque nombre premier, un processus qui ne transmet que les
+entiers que le nombre premier ne divise pas.
+
+- Mandelbrot -
+
+[DESCRIPTION DE MANDELBROT]
+
+
