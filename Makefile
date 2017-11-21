@@ -1,4 +1,4 @@
-OCAMLBUILD=ocamlbuild -classic-display \
+OCAMLBUILD=ocamlbuild \
 		-tags annot,debug,thread \
 		-libs unix,graphics
 TARGET=native
@@ -13,13 +13,13 @@ all: example primes mandelbrot rapport
 example:pipes sequential networkinter
 
 pipes:
-	$(OCAMLBUILD) pipes_test.$(TARGET)
+	$(OCAMLBUILD) src/pipes_test.$(TARGET)
 
 sequential:
-	$(OCAMLBUILD) seq_test.$(TARGET)
+	$(OCAMLBUILD) src/seq_test.$(TARGET)
 
 networkinter:
-	$(OCAMLBUILD) network_inter_test.$(TARGET)
+	$(OCAMLBUILD) src/network_inter_test.$(TARGET)
 
 #network_try:
 #	$(OCAMLBUILD) network_try.$(TARGET)
@@ -36,13 +36,13 @@ networkinter:
 primes: primes_pipes primes_network_inter network_primes
 
 primes_pipes:
-	$(OCAMLBUILD) pipes_primes.$(TARGET)
+	$(OCAMLBUILD) src/pipes_primes.$(TARGET)
 
 primes_network_inter:
-	$(OCAMLBUILD) network_inter_primes.$(TARGET)
+	$(OCAMLBUILD) src/network_inter_primes.$(TARGET)
 
 network_primes:
-	$(OCAMLBUILD) network_test.$(TARGET)
+	$(OCAMLBUILD) src/network_test.$(TARGET)
 #	./network_test.$(TARGET) -s
 
 ##################################################################
@@ -52,16 +52,16 @@ network_primes:
 mandelbrot:  seq_mand pipes_mand network_inter_mand network_mand
 
 seq_mand:
-	$(OCAMLBUILD) seq_mand.$(TARGET)
+	$(OCAMLBUILD) src/seq_mand.$(TARGET)
 
 pipes_mand:
-	$(OCAMLBUILD) pipes_mand.$(TARGET)
+	$(OCAMLBUILD) src/pipes_mand.$(TARGET)
 
 network_inter_mand:
-	$(OCAMLBUILD) network_inter_mand.$(TARGET)
+	$(OCAMLBUILD) src/network_inter_mand.$(TARGET)
 
 network_mand:
-	$(OCAMLBUILD) network_mand.$(TARGET)
+	$(OCAMLBUILD) src/network_mand.$(TARGET)
 
 ##################################################################
 ##            Un essai de communication sur le réseau de l'ÉNS
@@ -70,17 +70,18 @@ network_mand:
 try: try_client try_server
 
 try_client:
-	$(OCAMLBUILD) network_try_client.$(TARGET)
+	$(OCAMLBUILD) src/network_try_client.$(TARGET)
 
 try_server:
-	$(OCAMLBUILD) network_try.$(TARGET)
+	$(OCAMLBUILD) src/network_try.$(TARGET)
 
 ##################################################################
 ##           Rapport 
 ##################################################################
 
 rapport:
-	pdflatex rapport.tex
+	pdflatex report/rapport.tex
+	mv report/rapport.pdf ./
 
 ##################################################################
 ##           CLEAN
